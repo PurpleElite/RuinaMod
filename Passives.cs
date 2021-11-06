@@ -16,7 +16,6 @@ namespace Passives
         private int rerollCount = 0;
         public override void AfterAction()
         {
-            Debug.Log("AfterAction multislash, light: " + owner.cardSlotDetail.PlayPoint + ", rerollCount: " + rerollCount);
             if (rerollCount < 4 && owner.cardSlotDetail.PlayPoint > 0)
             {
                 Debug.Log("Light count: " + owner.cardSlotDetail.PlayPoint);
@@ -32,18 +31,44 @@ namespace Passives
         /// <summary>
         /// Description
         /// </summary>
-        public static string Desc = "[On Hit] If target is Staggered deal 50 damage";
+        public static string Desc = "[On Hit] If target is Staggered deal 60 damage";
 
         public override void OnSucceedAttack()
         {
             var target = card.target;
             Debug.Log("execute OnSuceedAttack target " + target.view.name);
-            if (target != null && target.IsBreakLifeZero())
+            if (target != null && (target.IsBreakLifeZero() || target.breakDetail.breakGauge == 0))
             {
                 Debug.Log("Target break life is zero");
-                target.TakeDamage(50, DamageType.Card_Ability, owner);
+                target.TakeDamage(60, DamageType.Card_Ability, owner);
+                BattleCardTotalResult battleCardResultLog = owner.battleCardResultLog;
+                if (battleCardResultLog == null)
+                {
+                    return;
+                }
+                battleCardResultLog.SetPrintDamagedEffectEvent(new BattleCardBehaviourResult.BehaviourEvent(EarthQuake));
             }
             base.OnSucceedAttack();
+        }
+
+        private void EarthQuake()
+        {
+            FilterUtil.ShowWarpBloodFilter();
+            BattleCamManager instance = SingletonBehavior<BattleCamManager>.Instance;
+            CameraFilterPack_FX_EarthQuake cameraFilterPack_FX_EarthQuake = ((instance != null) ? instance.EffectCam.gameObject.AddComponent<CameraFilterPack_FX_EarthQuake>() : null) ?? null;
+            if (cameraFilterPack_FX_EarthQuake != null)
+            {
+                cameraFilterPack_FX_EarthQuake.X = 0.075f;
+                cameraFilterPack_FX_EarthQuake.Y = 0.01f;
+                cameraFilterPack_FX_EarthQuake.Speed = 50f;
+            }
+            BattleCamManager instance2 = SingletonBehavior<BattleCamManager>.Instance;
+            AutoScriptDestruct autoScriptDestruct = ((instance2 != null) ? instance2.EffectCam.gameObject.AddComponent<AutoScriptDestruct>() : null) ?? null;
+            if (autoScriptDestruct != null)
+            {
+                autoScriptDestruct.targetScript = cameraFilterPack_FX_EarthQuake;
+                autoScriptDestruct.time = 0.4f;
+            }
         }
     }
 
@@ -71,7 +96,6 @@ namespace Passives
 
         public override void OnWaveStart()
         {
-            Debug.Log("Debug.Log is working");
             _breakState = BreakState.noBreak;
             _die = false;
         }
@@ -84,12 +108,13 @@ namespace Passives
 
         public override void AfterTakeDamage(BattleUnitModel attacker, int dmg)
         {
-            if ((_breakState != BreakState.noBreak) && dmg >= owner.hp && !_die)
+            if (!IsImmuneDmg() && owner.hp == 1 && !_die)
             {
                 attacker.OnKill(owner);
                 _die = true;
-                owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Strength, 8, owner);
-                owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Endurance, 8, owner);
+                Debug.Log("about to die, adding 10 strength and endurance");
+                owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Strength, 10, owner);
+                owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Endurance, 10, owner);
             }
         }
 
@@ -109,15 +134,19 @@ namespace Passives
 
         public override void OnBreakState()
         {
-            owner.breakDetail.nextTurnBreak = false;
-            owner.breakDetail.breakLife = owner.MaxBreakLife;
-            owner.currentDiceAction = _diceActionPreBreak;
-            owner.turnState = _turnStatePreBreak;
-            owner.battleCardResultLog.SetBreakState(false);
-            owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Strength, 3, owner);
-            owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Endurance, 3, owner);
-            owner.bufListDetail.AddKeywordBufByEtc(KeywordBuf.Strength, 3, owner);
-            owner.bufListDetail.AddKeywordBufByEtc(KeywordBuf.Endurance, 3, owner);
+            if (_breakState == BreakState.brokeThisRound)
+            {
+                owner.breakDetail.nextTurnBreak = false;
+                owner.breakDetail.breakLife = owner.MaxBreakLife;
+                owner.currentDiceAction = _diceActionPreBreak;
+                owner.turnState = _turnStatePreBreak;
+                owner.battleCardResultLog.SetBreakState(false);
+                owner.view.SetCriticals(true, false);
+                owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Strength, 3);
+                owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Endurance, 3);
+                owner.bufListDetail.AddKeywordBufByEtc(KeywordBuf.Strength, 3);
+                owner.bufListDetail.AddKeywordBufByEtc(KeywordBuf.Endurance, 3);
+            }
         }
 
         public override AtkResist GetResistHP(AtkResist origin, BehaviourDetail detail)
@@ -138,9 +167,8 @@ namespace Passives
             return base.GetResistBP(origin, detail);
         }
 
-        public override void OnRoundEnd_before()
+        public override void OnRoundEnd()
         {
-            Debug.Log("Round End");
             if (_die)
             {
                 owner.Die();
@@ -171,7 +199,6 @@ namespace Passives
                     card.SetPriorityAdder(card.GetPriorityAdder() - counterDiceScore);
                 }
             }
-            base.OnRoundEnd_before();
         }
 
         private void SetStaggeredMotion(bool isStaggered)
@@ -193,17 +220,14 @@ namespace Passives
         public override int GetPriorityAdder(BattleDiceCardModel card, int speed)
         {
             //If there are staggered targets and the card has execute effect, prioritize using it
-            Debug.Log($"Card in hand: {card.GetName()}, Scripts: {string.Join(",", card.GetBehaviourList().Select(x => x.Script).Where(x => !string.IsNullOrEmpty(x)))}, Package ID: {card.GetID().packageId}, Text ID: {card.GetTextId().id}");
-            if (card.GetBehaviourList().Any(x => x.Script == "execute") || (card.GetID().packageId == WorkshopId && card.GetTextId().id == 80085))
+            if (card.GetBehaviourList().Any(x => x.Script == "execute") || card.GetID() == new LorId(WorkshopId, 8))
             {
                 if (GetStaggeredTargets().Count() > 0)
                 {
-                    Debug.Log("Off With Their Heads in hand and at least one staggered enemy");
                     return 200;
                 }
                 else
                 {
-                    Debug.Log("Off With Their Heads in hand but no staggered enemy");
                     return -50;
                 }
             }
@@ -213,7 +237,7 @@ namespace Passives
         public override BattleUnitModel ChangeAttackTarget(BattleDiceCardModel card, int idx)
         {
             //If card has execute effect, prioritize staggered targets
-            if (card.GetBehaviourList().Any(x => x.Script == "execute") || (card.GetID().packageId == WorkshopId && card.GetTextId().id == 80085))
+            if (card.GetBehaviourList().Any(x => x.Script == "execute") || card.GetID() == new LorId(WorkshopId, 8))
             {
                 return GetStaggeredTargets().LastOrDefault();
             }
@@ -245,7 +269,7 @@ namespace Passives
                     }
                 }
             }
-            return list.Where(x => x.IsBreakLifeZero()).OrderBy(x => x.hp);
+            return list.Where(x => x.IsBreakLifeZero() || x.breakDetail.breakGauge == 0).OrderBy(x => x.hp);
         }
     }
 
@@ -254,14 +278,28 @@ namespace Passives
         /// <summary>
         /// Description
         /// </summary>
-        public static string Desc = "Restore all light when staggered";
+        public static string Desc = "Restore all Light at end of turn after being Staggered";
+
+        private bool _staggered;
+        public override void OnWaveStart()
+        {
+            _staggered = false;
+        }
 
         public override void OnBreakState()
         {
-            owner.cardSlotDetail.ResetPlayPoint();
+            _staggered = true;
         }
-    };
 
+        public override void OnRoundEnd()
+        {
+            if (_staggered)
+            {
+                owner.cardSlotDetail.ResetPlayPoint();
+            }
+            _staggered = false; 
+        }
+    }
     public class DiceCardSelfAbility_extra_clash_dice : DiceCardSelfAbilityBase
     {
         /// <summary>
@@ -276,27 +314,115 @@ namespace Passives
         private const int diceCount = 2;
         public override void OnStartParrying()
         {
-            Debug.Log("OnStartParrying extra_clash_dice");
             card.target.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Vulnerable, 2, owner);
             var diceOnCard = card.GetDiceBehaviourXmlList();
-            var firstDice = diceOnCard.FirstOrDefault(x => x.Detail == _diceType)?.Copy();
-            firstDice = firstDice ?? diceOnCard.FirstOrDefault(x => x.Type == BehaviourType.Atk)?.Copy();
-            firstDice = firstDice ?? diceOnCard.First().Copy();
-            firstDice.Min = min;
-            firstDice.Dice = max;
-            firstDice.Detail = _diceType;
-            firstDice.MotionDetail = _motionType;
-            firstDice.Type = BehaviourType.Atk;
-            Debug.Log($"new diceBehavior created: {firstDice.Min}-{firstDice.Dice} {firstDice.Detail}");
+            var firstDiceCopy = diceOnCard.FirstOrDefault(x => x.Detail == _diceType)?.Copy();
+            firstDiceCopy = firstDiceCopy ?? diceOnCard.FirstOrDefault(x => x.Type == BehaviourType.Atk)?.Copy();
+            firstDiceCopy = firstDiceCopy ?? diceOnCard.First().Copy();
+            firstDiceCopy.Min = min;
+            firstDiceCopy.Dice = max;
+            firstDiceCopy.Detail = _diceType;
+            firstDiceCopy.MotionDetail = _motionType;
+            firstDiceCopy.Type = BehaviourType.Atk;
+            firstDiceCopy.ActionScript = null;
+            firstDiceCopy.Script = null;
             for (int i = 0; i < diceCount; i++)
             {
                 var battleDiceBehavior = new BattleDiceBehavior();
-                battleDiceBehavior.behaviourInCard = firstDice;
-                Debug.Log($"new BattleDiceBehavior {battleDiceBehavior.GetDiceMin()}-{battleDiceBehavior.GetDiceMax()} {battleDiceBehavior.Detail}");
+                battleDiceBehavior.behaviourInCard = firstDiceCopy;
                 battleDiceBehavior.SetIndex(i + diceOnCard.Count());
                 card.AddDice(battleDiceBehavior);
-                Debug.Log("Added dice to index " + (i + diceOnCard.Count()));
             }
+        }
+    }
+
+    public class DiceCardSelfAbility_bonds_protection : DiceCardSelfAbilityBase
+    {
+        public static string Desc = "[On Combat Start] If target is an ally, give 1 stack of The Bonds That Bind Us. If target is an enemy, spend 1 stack of The Bonds That Bind Us to redirect all target's cards to the dice with this card instead.";
+        public override void OnStartBattle()
+        {
+            if (card.target == null)
+            {
+                return;
+            }
+            if (card.target.faction == owner.faction)
+            {
+                card.target.bufListDetail.AddBuf(new BattleUnitBuf_bonds());
+            }
+            else
+            {
+                var bondsBuff = owner.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_bonds);
+                if (bondsBuff == null && card.target.IsTauntable())
+                {
+                    return;
+                }
+                bondsBuff.stack--;
+                foreach (var enemyCard in card.target.cardSlotDetail.cardAry)
+                {
+                    enemyCard.target = owner;
+                    enemyCard.targetSlotOrder = card.slotOrder;
+                }
+            }
+        }
+
+        public override bool IsTargetableAllUnit()
+        {
+            return true;
+        }
+
+        public override bool IsValidTarget(BattleUnitModel unit, BattleDiceCardModel self, BattleUnitModel targetUnit)
+        {
+            return true;
+        }
+    }
+
+    public class BattleUnitBuf_bonds : BattleUnitBuf
+    {
+        protected override string keywordId
+        {
+            get
+            {
+                return "BondsThatBindUs";
+            }
+        }
+
+        public override void Init(BattleUnitModel owner)
+        {
+            stack = 0;
+        }
+    }
+
+    public class BehaviourAction_johannaexecute : BehaviourActionBase
+    {
+        public override List<RencounterManager.MovingAction> GetMovingAction(ref RencounterManager.ActionAfterBehaviour self, ref RencounterManager.ActionAfterBehaviour opponent)
+        {
+            Debug.Log("execute animation called");
+            bool opponentBroken = false;
+            if (opponent.behaviourResultData != null)
+            {
+                opponentBroken = !opponent.behaviourResultData.isBreaked;
+            }
+            Debug.Log("opponentBroken: " + opponentBroken);
+            if (self.result != Result.Win || !opponentBroken)
+            {
+                return base.GetMovingAction(ref self, ref opponent);
+            }
+            var moveList = new List<RencounterManager.MovingAction>();
+            var movingAction1 = new RencounterManager.MovingAction(ActionDetail.Move, CharMoveState.Stop, 0f, true, 0.5f, 1f);
+            var movingAction2 = new RencounterManager.MovingAction(ActionDetail.Fire, CharMoveState.Stop);
+            movingAction2.SetEffectTiming(EffectTiming.PRE, EffectTiming.PRE, EffectTiming.PRE);
+            movingAction2.customEffectRes = "TwistedElena_H";
+            moveList.Add(movingAction1);
+            moveList.Add(movingAction2);
+
+            if (opponent.infoList.Count > 0)
+            {
+                opponent.infoList.Clear();
+            }
+            opponent.infoList.Add(new RencounterManager.MovingAction(ActionDetail.Damaged, CharMoveState.Stop, 0f, true, 2f, 1f));
+            opponent.infoList.Add(new RencounterManager.MovingAction(ActionDetail.Damaged, CharMoveState.Knockback, 2f, true, 0.5f, 1f));
+
+            return moveList;
         }
     }
 
