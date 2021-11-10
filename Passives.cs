@@ -8,9 +8,6 @@ namespace Passives
 {
     public class DiceCardAbility_multi : DiceCardAbilityBase
     {
-        /// <summary>
-        /// Description
-        /// </summary>
         public static string Desc = "This die is rolled up to 5 times at the cost of one light per extra roll.";
 
         private int rerollCount = 0;
@@ -28,9 +25,6 @@ namespace Passives
 
     public class DiceCardAbility_execute : DiceCardAbilityBase
     {
-        /// <summary>
-        /// Description
-        /// </summary>
         public static string Desc = "[On Hit] If target is Staggered deal 60 damage";
 
         public override void OnSucceedAttack()
@@ -74,9 +68,6 @@ namespace Passives
 
     public class PassiveAbility_radiant_perseverance : PassiveAbilityBase
     {
-        /// <summary>
-        /// Description
-        /// </summary>
         public static string Desc = "Cannot be damaged unless staggered and can still act while staggered. Will not die until the end of the round after taking damage that would otherwise be fatal. Gains strength and endurance while staggered and even more when at death's door";
         private const string WorkshopId = "SeraphOffice";
 
@@ -275,9 +266,6 @@ namespace Passives
 
     public class PassiveAbility_second_wind : PassiveAbilityBase
     {
-        /// <summary>
-        /// Description
-        /// </summary>
         public static string Desc = "Restore all Light at end of turn after being Staggered";
 
         private bool _staggered;
@@ -300,11 +288,20 @@ namespace Passives
             _staggered = false; 
         }
     }
+
+    public class PassiveAbility_bonds_that_bind_us_defend : PassiveAbilityBase
+    {
+        public static string Desc = "At the start of the act gain one stack of The Bonds that Bind Us and add a unique combat page to hand.";
+
+        public override void OnWaveStart()
+        {
+            owner.bufListDetail.AddBuf(new BattleUnitBuf_bonds());
+            //TODO: add card to hand
+        }
+    }
+
     public class DiceCardSelfAbility_extra_clash_dice : DiceCardSelfAbilityBase
     {
-        /// <summary>
-        /// Description
-        /// </summary>
         public static string Desc = "[On Clash] Inflict 2 Fragile and add two Slash dice (Roll: 5-8) to the dice queue";
 
         private const BehaviourDetail _diceType = BehaviourDetail.Slash;
@@ -345,14 +342,21 @@ namespace Passives
             {
                 return;
             }
+            var bondsBuff = owner.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_bonds);
             if (card.target.faction == owner.faction)
             {
-                card.target.bufListDetail.AddBuf(new BattleUnitBuf_bonds());
+                if (bondsBuff == null)
+                {
+                    card.target.bufListDetail.AddBuf(new BattleUnitBuf_bonds());
+                }
+                else
+                {
+                    bondsBuff.stack++;
+                }
             }
             else
             {
-                var bondsBuff = owner.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_bonds);
-                if (bondsBuff == null && card.target.IsTauntable())
+                if (bondsBuff == null || !card.target.IsTauntable())
                 {
                     return;
                 }
