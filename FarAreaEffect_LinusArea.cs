@@ -6,11 +6,8 @@ using LOR_XML;
 using Sound;
 using UnityEngine;
 
-// Token: 0x020002AC RID: 684
 public class FarAreaeffect_LinusArea : FarAreaEffect
 {
-	// Token: 0x17000150 RID: 336
-	// (get) Token: 0x06001179 RID: 4473 RVA: 0x000894B0 File Offset: 0x000876B0
 	public override bool HasIndependentAction
 	{
 		get
@@ -19,7 +16,6 @@ public class FarAreaeffect_LinusArea : FarAreaEffect
 		}
 	}
 
-	// Token: 0x0600117A RID: 4474 RVA: 0x0008DE90 File Offset: 0x0008C090
 	public override void Init(BattleUnitModel self, params object[] args)
 	{
 		base.Init(self, args);
@@ -27,7 +23,7 @@ public class FarAreaeffect_LinusArea : FarAreaEffect
 		_elapsedEndAtk = 0f;
 		_elapsedAtkOneTarget = 0f;
 		OnEffectStart();
-		_trailObject = Util.LoadPrefab("Battle/SpecialEffect/ArgaliaSpecialAreaEffect", transform);
+		_trailObject = Util.LoadPrefab(_TRAIL_PREFAB_PATH, transform);
 		_trailObject.transform.localPosition = Vector3.zero;
 		_self.view.charAppearance.ChangeMotion(ActionDetail.Default);
 		List<BattleUnitModel> list = new List<BattleUnitModel>();
@@ -38,7 +34,6 @@ public class FarAreaeffect_LinusArea : FarAreaEffect
 		_srcPosAtkOneTarget = Vector3.zero;
 	}
 
-	// Token: 0x0600117B RID: 4475 RVA: 0x0008DF74 File Offset: 0x0008C174
 	public override bool ActionPhase(float deltaTime, BattleUnitModel attacker, List<BattleFarAreaPlayManager.VictimInfo> victims, ref List<BattleFarAreaPlayManager.VictimInfo> defenseVictims)
 	{
 		bool result = false;
@@ -97,27 +92,29 @@ public class FarAreaeffect_LinusArea : FarAreaEffect
 							{
 								diceAttackEffect.SetLayer("Effect");
 							}
+							void ApplyDamagePlaySoundAndCheckKill()
+                            {
+								attacker.currentDiceAction.currentBehavior.GiveDamage(targetInfo.unitModel);
+								if (_motionCount == 0)
+								{
+									SingletonBehavior<SoundEffectManager>.Instance.PlayClip("Battle/Dawn_Yuna_Hori", false, 1f, null);
+								}
+								else
+								{
+									SingletonBehavior<SoundEffectManager>.Instance.PlayClip("Battle/Warp_Mass_Hori", false, 1f, null);
+								}
+								if (targetInfo.unitModel.IsDead())
+								{
+									targetInfo.unitModel.view.DisplayDlg(DialogType.DEATH, new List<BattleUnitModel> { _self });
+								}
+								targetInfo.unitModel.view.charAppearance.ChangeMotion(ActionDetail.Damaged);
+							}
 							BattlePlayingCardDataInUnitModel playingCard = targetInfo.playingCard;
 							if ((playingCard?.currentBehavior) != null)
 							{
 								if (attacker.currentDiceAction.currentBehavior.DiceResultValue > targetInfo.playingCard.currentBehavior.DiceResultValue)
 								{
-									attacker.currentDiceAction.currentBehavior.GiveDamage(targetInfo.unitModel);
-									if (_motionCount == 0)
-									{
-										SingletonBehavior<SoundEffectManager>.Instance.PlayClip("Battle/Blue_Argalria_Far_Atk1", false, 1f, null);
-									}
-									else
-									{
-										SingletonBehavior<SoundEffectManager>.Instance.PlayClip("Battle/Blue_Argalria_Far_Atk2", false, 1f, null);
-									}
-									if (targetInfo.unitModel.IsDead())
-									{
-										List<BattleUnitModel> list2 = new List<BattleUnitModel>();
-										list2.Add(_self);
-										targetInfo.unitModel.view.DisplayDlg(DialogType.DEATH, list2);
-									}
-									targetInfo.unitModel.view.charAppearance.ChangeMotion(ActionDetail.Damaged);
+									ApplyDamagePlaySoundAndCheckKill();
 									targetInfo.destroyedDicesIndex.Add(targetInfo.playingCard.currentBehavior.Index);
 								}
 								else
@@ -132,22 +129,7 @@ public class FarAreaeffect_LinusArea : FarAreaEffect
 							}
 							else
 							{
-								attacker.currentDiceAction.currentBehavior.GiveDamage(targetInfo.unitModel);
-								if (FarAreaeffect_LinusArea._motionCount == 0)
-								{
-									SingletonBehavior<SoundEffectManager>.Instance.PlayClip("Battle/Blue_Argalria_Far_Atk1", false, 1f, null);
-								}
-								else
-								{
-									SingletonBehavior<SoundEffectManager>.Instance.PlayClip("Battle/Blue_Argalria_Far_Atk2", false, 1f, null);
-								}
-								if (targetInfo.unitModel.IsDead())
-								{
-									List<BattleUnitModel> list3 = new List<BattleUnitModel>();
-									list3.Add(_self);
-									targetInfo.unitModel.view.DisplayDlg(DialogType.DEATH, list3);
-								}
-								targetInfo.unitModel.view.charAppearance.ChangeMotion(ActionDetail.Damaged);
+								ApplyDamagePlaySoundAndCheckKill();
 							}
 							SingletonBehavior<BattleManagerUI>.Instance.ui_unitListInfoSummary.UpdateCharacterProfile(targetInfo.unitModel, targetInfo.unitModel.faction, targetInfo.unitModel.hp, targetInfo.unitModel.breakDetail.breakGauge, null);
 							SingletonBehavior<BattleManagerUI>.Instance.ui_unitListInfoSummary.UpdateCharacterProfile(attacker, attacker.faction, attacker.hp, attacker.breakDetail.breakGauge, null);
@@ -156,6 +138,7 @@ public class FarAreaeffect_LinusArea : FarAreaEffect
 					}
 				}
 			}
+			//Interpolate motion towards target, reaches destination when _elapsedAtkOneTarget = 0.1f
 			_elapsedAtkOneTarget += deltaTime;
 			if (Vector3.SqrMagnitude(_dstPosAtkOneTarget - _srcPosAtkOneTarget) > Mathf.Epsilon)
 			{
@@ -168,22 +151,22 @@ public class FarAreaeffect_LinusArea : FarAreaEffect
 				_dstPosAtkOneTarget = Vector3.zero;
 				if (_victimList == null || _victimList.Count == 0)
 				{
-					state = FarAreaEffect.EffectState.End;
+					state = EffectState.End;
 				}
 				else if (!_victimList.Exists((BattleFarAreaPlayManager.VictimInfo x) => !x.unitModel.IsDead()))
 				{
 					_victimList.Clear();
-					state = FarAreaEffect.EffectState.End;
+					state = EffectState.End;
 				}
 			}
 		}
-		else if (state == FarAreaEffect.EffectState.End)
+		else if (state == EffectState.End)
 		{
 			_elapsedEndAtk += deltaTime;
 			if (_elapsedEndAtk > 0.35f)
 			{
 				_self.view.charAppearance.ChangeMotion(ActionDetail.Default);
-				state = FarAreaEffect.EffectState.None;
+				state = EffectState.None;
 				_elapsedEndAtk = 0f;
 			}
 		}
@@ -193,14 +176,13 @@ public class FarAreaeffect_LinusArea : FarAreaEffect
 			result = true;
 			if (_trailObject != null)
 			{
-				UnityEngine.Object.Destroy(_trailObject);
+				Destroy(_trailObject);
 			}
-			UnityEngine.Object.Destroy(base.gameObject);
+			Destroy(gameObject);
 		}
 		return result;
 	}
 
-	// Token: 0x0600117C RID: 4476 RVA: 0x0008D210 File Offset: 0x0008B410
 	protected override void Update()
 	{
 		if (isRunning && _self.moveDetail.isArrived)
@@ -209,35 +191,21 @@ public class FarAreaeffect_LinusArea : FarAreaEffect
 		}
 	}
 
-	// Token: 0x0600117D RID: 4477 RVA: 0x000021A4 File Offset: 0x000003A4
-	private void OnDestroy()
-	{
-	}
-
-	// Token: 0x0400175F RID: 5983
 	private const string _TRAIL_PREFAB_PATH = "Battle/SpecialEffect/ArgaliaSpecialAreaEffect";
 
-	// Token: 0x04001760 RID: 5984
 	private static int _motionCount;
 
-	// Token: 0x04001761 RID: 5985
 	private List<BattleFarAreaPlayManager.VictimInfo> _victimList;
 
-	// Token: 0x04001762 RID: 5986
 	private float _elapsedEndAtk;
 
-	// Token: 0x04001763 RID: 5987
 	private float _elapsedAtkOneTarget;
 
-	// Token: 0x04001764 RID: 5988
 	private GameObject _trailObject;
 
-	// Token: 0x04001765 RID: 5989
 	private int _sign;
 
-	// Token: 0x04001766 RID: 5990
 	private Vector3 _srcPosAtkOneTarget;
 
-	// Token: 0x04001767 RID: 5991
 	private Vector3 _dstPosAtkOneTarget;
 }
