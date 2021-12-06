@@ -358,6 +358,40 @@ namespace Passives
         }
     }
 
+    public class PassiveAbility_together_to_the_end : PassiveAbilityBase
+    {
+        public static string Desc = "Gain a unique card that revives an ally and nullifies the user's power gain for the turn at the cost of a stack of The Bonds that Bind Us.";
+        private const int _cardId = 12;
+        public override void OnWaveStart()
+        {
+            owner.allyCardDetail.AddNewCard(new LorId(ModData.WorkshopId, _cardId));
+            var allies = BattleObjectManager.instance.GetAliveList(owner.faction);
+            foreach (var ally in allies)
+            {
+                ally.SetKnockoutInsteadOfDeath(true);
+                ally.passiveDetail.AddPassive(new PassiveAbility_no_clash_allies(_cardId));
+            }
+        }
+
+        public override int GetPriorityAdder(BattleDiceCardModel card, int speed)
+        {
+            //If there are staggered targets and the card has execute effect, prioritize using it
+            if (card.GetID() == new LorId(ModData.WorkshopId, 12))
+            {
+                var allies = BattleObjectManager.instance.GetAliveList(owner.faction);
+                if (allies.Any(x => x.IsKnockout()))
+                {
+                    return 200;
+                }
+                else
+                {
+                    return -50;
+                }
+            }
+            return base.GetPriorityAdder(card, speed);
+        }
+    }
+
     public class PassiveAbility_bonds_that_bind_us_defend : PassiveAbility_bonds_base
     {
         public override int CardId { get => 9; }
@@ -469,6 +503,33 @@ namespace Passives
         }
     }
 
+    public class DiceCardSelfAbility_together_to_the_end : DiceCardSelfAbilityBase
+    {
+        public static string Desc = "Cannot be redirected. [On Combat Start][Target Ally] Spend 1 stack of The Bonds that Bind Us and inflict 2 Feeble and Disarm on self to revive the target at half health and max stagger resist at the end of the round.";
+        public override void OnStartBattle()
+        {
+            var bondsBuff = owner.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_bonds);
+            if (bondsBuff?.stack > 0)
+            {
+                card.target.bufListDetail.AddBuf(new BattleUnitBuf_revive_at_turn_end());
+                bondsBuff.stack--;
+                owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Weak, 2);
+                owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Disarm, 2);
+            }
+        }
+
+        public override bool IsOnlyAllyUnit()
+        {
+            return true;
+        }
+
+        public override bool IsValidTarget(BattleUnitModel unit, BattleDiceCardModel self, BattleUnitModel targetUnit)
+        {
+            var bondsBuff = owner.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_bonds);
+            return bondsBuff?.stack > 0 && targetUnit.IsKnockout();
+        }
+    }
+
     public class DiceCardSelfAbility_bonds_base : DiceCardSelfAbilityBase
     {
         public static string Desc = "[On Combat Start] If target is an ally, give and gain 1 stack of The Bonds That Bind Us.";
@@ -554,35 +615,26 @@ namespace Passives
         {
             if (bondsBuff == null || bondsBuff.stack < 1)
             {
-                Debug.Log("Cannot use special, not enough stacks");
                 return;
             }
-            Debug.Log("Using mass attack");
             //TODO: give the mass attack a proper animation
             bondsBuff.stack--;
-            var cardSpec = card.card.GetSpec();
-            cardSpec.Ranged = CardRange.FarAreaEach;
-            cardSpec.affection = CardAffection.Team;
-            var behaviorList = card.GetDiceBehaviorList();
-            foreach (var dice in behaviorList)
-            {
-                dice.behaviourInCard.Type = BehaviourType.Atk;
-                dice.behaviourInCard.ActionScript = "linus_area";
-            }
+
+            owner.allyCardDetail.UseCard(card.card);
+            var cardXml = ItemXmlDataList.instance.GetCardItem(new LorId(ModData.WorkshopId, 12));
+            var cardModel = BattleDiceCardModel.CreatePlayingCard(cardXml);
+            card.card = cardModel;
+            card.ResetCardQueue();
+            card.subTargets = new List<BattlePlayingCardDataInUnitModel.SubTarget>();
             var targetList = BattleObjectManager.instance.GetAliveList((card.owner.faction == Faction.Enemy) ? Faction.Player : Faction.Enemy);
             targetList.Remove(card.target);
-            card.subTargets = new List<BattlePlayingCardDataInUnitModel.SubTarget>();
             foreach (BattleUnitModel battleUnitModel in targetList)
             {
                 if (battleUnitModel.IsTargetable(card.owner))
                 {
                     BattlePlayingCardSlotDetail cardSlotDetail = battleUnitModel.cardSlotDetail;
-                    bool flag;
-                    if (cardSlotDetail == null)
-                    {
-                        flag = false;
-                    }
-                    else
+                    bool flag = false;
+                    if (cardSlotDetail != null)
                     {
                         List<BattlePlayingCardDataInUnitModel> targetDice = cardSlotDetail.cardAry;
                         int? numDice = targetDice?.Count;
@@ -597,19 +649,6 @@ namespace Passives
                         Debug.Log("Added subTarget: " + subTarget.target?.view.name);
                     }
                 }
-            }
-        }
-
-        public override void OnEndBattle()
-        {
-            var cardSpec = card.card.GetSpec();
-            cardSpec.Ranged = CardRange.Near;
-            cardSpec.affection = CardAffection.One;
-            var behaviorList = card.GetDiceBehaviorList();
-            foreach (var dice in behaviorList)
-            {
-                dice.behaviourInCard.Type = BehaviourType.Standby;
-                dice.behaviourInCard.ActionScript = string.Empty;
             }
         }
     }
@@ -644,6 +683,23 @@ namespace Passives
         {
             if (stack <= 0)
             {
+                Destroy();
+            }
+        }
+    }
+
+    public class BattleUnitBuf_revive_at_turn_end : BattleUnitBuf
+    {
+        public override bool Hide => true;
+        public override void OnRoundEndTheLast()
+        {
+            if (_owner.IsKnockout())
+            {
+                var knockoutBuf = _owner.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_knockout);
+                knockoutBuf?.Destroy();
+                typeof(BattleUnitBaseModel).GetField("_isKnockout", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(_owner, false);
+                _owner.SetHp(_owner.MaxHp / 2);
+                _owner.breakDetail.ResetGauge();
                 Destroy();
             }
         }
