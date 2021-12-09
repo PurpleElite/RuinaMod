@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace Passives
+namespace CustomDLLs
 {
     public class PassiveAbility_radiant_perseverance : PassiveAbilityBase
     {
@@ -316,6 +316,44 @@ namespace Passives
                 return allies.Any() ? RandomUtil.SelectOne(allies) : base.ChangeAttackTarget(card, idx);
             }
             return base.ChangeAttackTarget(card, idx);
+        }
+    }
+
+    public class PassiveAbility_find_the_opening : PassiveAbilityBase
+    {
+        private int _count;
+        public override void OnRoundStart()
+        {
+            _count = 2;
+        }
+        public override void OnEndOneSideVictim(BattlePlayingCardDataInUnitModel attackerCard)
+        {
+            if (_count > 0)
+            {
+                _count--;
+                owner.bufListDetail.AddKeywordBufByEtc(KeywordBuf.Strength, 1);
+            }    
+        }
+    }
+
+    public class PassiveAbility_the_nymane_key : PassiveAbilityBase
+    {
+        public override void OnSucceedAttack(BattleDiceBehavior behavior)
+        {
+            if (RandomUtil.valueForProb < 0.5f)
+            {
+                BattleCardTotalResult battleCardResultLog = owner.battleCardResultLog;
+                if (battleCardResultLog != null)
+                {
+                    battleCardResultLog.SetPassiveAbility(this);
+                }
+                BattleUnitModel target = behavior.card.target;
+                if (target == null)
+                {
+                    return;
+                }
+                target.bufListDetail.AddKeywordBufByEtc(KeywordBuf.Decay, 1, owner);
+            }
         }
     }
 

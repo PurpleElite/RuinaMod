@@ -145,7 +145,7 @@ namespace CustomDLLs
     public class DiceCardSelfAbility_bonds_drive : DiceCardSelfAbility_bonds_base
     {
         public static new string Desc = DiceCardSelfAbility_bonds_base.Desc + " If target is an enemy, spend 1 stack of The Bonds That Bind Us to turn this into a Mass-Individual page.";
-
+        private BattleDiceCardModel originalCard;
         protected override void TargetEnemy(BattleUnitBuf bondsBuff)
         {
             if (bondsBuff == null || bondsBuff.stack < 1)
@@ -155,9 +155,10 @@ namespace CustomDLLs
             //TODO: give the mass attack a proper animation
             bondsBuff.stack--;
 
-            owner.allyCardDetail.UseCard(card.card);
+            originalCard = card.card;
             var cardXml = ItemXmlDataList.instance.GetCardItem(new LorId(ModData.WorkshopId, 12));
             var cardModel = BattleDiceCardModel.CreatePlayingCard(cardXml);
+            cardModel.temporary = true;
             card.card = cardModel;
             card.ResetCardQueue();
             card.subTargets = new List<BattlePlayingCardDataInUnitModel.SubTarget>();
@@ -184,6 +185,30 @@ namespace CustomDLLs
                         Debug.Log("Added subTarget: " + subTarget.target?.view.name);
                     }
                 }
+            }
+        }
+
+        public override void OnUseCard()
+        {
+            if (originalCard != null)
+            {
+                owner.allyCardDetail.SpendCard(originalCard);
+                originalCard = null;
+            }
+        }
+    }
+    public class DiceCardSelfAbility_fastforward : DiceCardSelfAbilityBase
+    {
+        public static string Desc = "[On Use] Grant all allies 2 Haste next Scene and draw 1 page.";
+
+        public override void OnUseCard()
+        {
+            Debug.Log("fastforward OnUseCard()");
+            owner.allyCardDetail.DrawCards(1);
+            var team = BattleObjectManager.instance.GetAliveList(owner.faction);
+            foreach (var ally in team)
+            {
+                ally.bufListDetail.AddKeywordBufByCard(KeywordBuf.Quickness, 2, owner);
             }
         }
     }

@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Linq;
+using UnityEngine;
 
 namespace CustomDLLs
 {
@@ -60,5 +61,27 @@ namespace CustomDLLs
                 autoScriptDestruct.time = 0.4f;
             }
         }
+    }
+
+    public class DiceCardAbility_entropy : DiceCardAbilityBase
+    {
+        public static string Desc = "[On Hit] Inflict Unstable Entropy";
+
+        public override void OnSucceedAttack(BattleUnitModel target)
+        {
+            Debug.Log("entropy OnSucceedAttack()");
+            var buffDetail = target.bufListDetail;
+            var buff = (BattleUnitBuf_unstable_entropy)buffDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_unstable_entropy);
+            if (buff != null)
+            {
+                Debug.Log("entropy setting stack to " + BattleUnitBuf_unstable_entropy.Duration + 1);
+                buff.stack = BattleUnitBuf_unstable_entropy.Duration + 1;
+            }
+            else
+            {
+                Debug.Log("entropy AddReadyBuf");
+                target.bufListDetail.AddReadyBuf(new BattleUnitBuf_unstable_entropy());
+            }
+        } 
     }
 }

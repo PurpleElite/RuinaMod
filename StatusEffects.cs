@@ -1,5 +1,7 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Reflection;
+using UnityEngine;
 
 namespace CustomDLLs
 {
@@ -57,55 +59,96 @@ namespace CustomDLLs
 
     public class BattleUnitBuf_unstable_entropy : BattleUnitBuf
     {
+        private const string buffName = "UnstableEntropy";
         private const int overflowValue = 5;
-        private const int duration = 2;
         private PassiveAbilityBase addedPassive;
+
+        public static int Duration = 2;
         public override BufPositiveType positiveType => BufPositiveType.Negative;
+
+        protected override string keywordId
+        {
+            get
+            {
+                return buffName;
+            }
+        }
+
+        public override void Init(BattleUnitModel owner)
+        {
+            base.Init(owner);
+            typeof(BattleUnitBuf).GetField("_bufIcon", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(this, ModData.Sprites[buffName]);
+            typeof(BattleUnitBuf).GetField("_iconInit", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(this, true);
+            //if (addedPassive == null)
+            //{
+            //    addedPassive = _owner.passiveDetail.AddPassive(new PassiveAbility_unstable_entropy());
+            //    _owner.passiveDetail.OnCreated();
+            //}
+            stack = Duration;
+        }
 
         public override void OnRoundStart()
         {
             var erosionBuff = _owner.bufListDetail.GetActivatedBuf(KeywordBuf.Decay);
-            _owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Quickness, erosionBuff?.stack/2 ?? 0);
+            _owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Quickness, (erosionBuff?.stack + 1) / 2 ?? 0);
+            if (stack >= overflowValue)
+            {
+                var allies = BattleObjectManager.instance.GetAliveList(_owner.faction);
+                allies.Remove(_owner);
+                foreach (var ally in allies)
+                {
+                    ally.bufListDetail.AddKeywordBufByEtc(KeywordBuf.Decay, 1);
+                }
+            }
             base.OnRoundStart();
         }
 
         public override void OnAddBuf(int addedStack)
         {
-            if (addedPassive == null)
-            {
-                addedPassive = _owner.passiveDetail.AddPassive(new PassiveAbility_unstable_entropy());
-                _owner.passiveDetail.OnCreated();
-            }
-            stack = 2;
+            Debug.Log("entropy OnAddBuf()");
+            //if (addedPassive == null)
+            //{
+            //    addedPassive = _owner.passiveDetail.AddPassive(new PassiveAbility_unstable_entropy());
+            //    _owner.passiveDetail.OnCreated();
+            //}
+            stack = Duration;
         }
 
         public override void OnRoundEnd()
         {
+            Debug.Log("entropy OnRoundEnd()");
             stack--;
             if (stack <= 0)
             {
-                _owner.passiveDetail.DestroyPassive(addedPassive);
-                _owner.passiveDetail.RemovePassive();
+                //Debug.Log("entropy Destroy Passive");
+                //_owner.passiveDetail.DestroyPassive(addedPassive);
+                //_owner.passiveDetail.RemovePassive();
                 Destroy();
             }
         }
 
-        private class PassiveAbility_unstable_entropy : PassiveAbilityBase
-        {
-            public override bool isHide => true;
-            public override int OnAddKeywordBufByCard(BattleUnitBuf buf, int stack)
-            {
-                if (buf.stack >= overflowValue)
-                {
-                    var allies = Singleton<BattleObjectManager>.Instance.GetAliveList(owner.faction);
-                    allies.Remove(owner);
-                    foreach (var ally in allies)
-                    {
-                        ally.bufListDetail.AddKeywordBufByEtc(KeywordBuf.Decay, 1);
-                    }
-                }
-                return base.OnAddKeywordBufByCard(buf, stack);
-            }
-        }
+        //private class PassiveAbility_unstable_entropy : PassiveAbilityBase
+        //{
+        //    public override bool isHide => true;
+        //    public override int OnAddKeywordBufByCard(BattleUnitBuf buf, int stack)
+        //    {
+        //        Debug.Log("entropy OnAddKeywordBufByCard()");
+        //        if (buf.stack >= overflowValue)
+        //        {
+        //            var allies = BattleObjectManager.instance.GetAliveList(owner.faction);
+        //            allies.Remove(owner);
+        //            foreach (var ally in allies)
+        //            {
+        //                ally.bufListDetail.AddKeywordBufByEtc(KeywordBuf.Decay, 1);
+        //            }
+        //            var thisBuff = owner.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_unstable_entropy);
+        //            owner.bufListDetail.RemoveBuf(thisBuff);
+        //            thisBuff.Destroy();
+        //            destroyed = true;
+        //            owner.passiveDetail.RemovePassive();
+        //        }
+        //        return base.OnAddKeywordBufByCard(buf, stack);
+        //    }
+        //}
     }
 }

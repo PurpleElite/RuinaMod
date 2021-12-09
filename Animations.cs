@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Battle.DiceAttackEffect;
 using LOR_DiceSystem;
 using LOR_XML;
