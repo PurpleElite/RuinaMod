@@ -239,7 +239,7 @@ namespace CustomDLLs
     public class PassiveAbility_together_to_the_end : PassiveAbilityBase
     {
         public static string Desc = "Allies are only knocked out while this character is alive. Gain a unique card that revives an ally and weakens the user for the turn at the cost of a stack of The Bonds that Bind Us.";
-        private const int _cardId = 12;
+        private const int _cardId = 13;
         public override void OnWaveStart()
         {
             owner.allyCardDetail.AddNewCard(new LorId(ModData.WorkshopId, _cardId));
@@ -253,8 +253,7 @@ namespace CustomDLLs
 
         public override int GetPriorityAdder(BattleDiceCardModel card, int speed)
         {
-            //If there are staggered targets and the card has execute effect, prioritize using it
-            if (card.GetID() == new LorId(ModData.WorkshopId, 12))
+            if (card.GetID() == new LorId(ModData.WorkshopId, _cardId))
             {
                 var allies = BattleObjectManager.instance.GetAliveList(owner.faction);
                 if (allies.Any(x => x.IsKnockout()))
@@ -273,16 +272,46 @@ namespace CustomDLLs
     public class PassiveAbility_bonds_that_bind_us_defend : PassiveAbility_bonds_base
     {
         public override int CardId { get => 9; }
+        public override void RoundStartEffect()
+        {
+            owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Protection, 2);
+        }
     }
 
     public class PassiveAbility_bonds_that_bind_us_restore : PassiveAbility_bonds_base
     {
-         public override int CardId { get => 10; }
+        public override int CardId { get => 10; }
+        public override void RoundStartEffect()
+        {
+            var allies = BattleObjectManager.instance.GetAliveList(owner.faction).Where(x => !x.IsKnockout()).ToList();
+            for (int i = 0; i < 2; i++)
+            {
+                if (allies.Count() > 0)
+                {
+                    var allyToHeal = RandomUtil.SelectOne(allies);
+                    allyToHeal.RecoverHP(10);
+                    if (!allyToHeal.IsBreakLifeZero() && allyToHeal.breakDetail.breakGauge > 0)
+                    {
+                        allyToHeal.breakDetail.RecoverBreak(10);
+                    }
+                    allies.Remove(allyToHeal);
+                }
+            }
+        }
     }
 
     public class PassiveAbility_bonds_that_bind_us_drive : PassiveAbility_bonds_base
     {
         public override int CardId { get => 11; }
+
+        public override void RoundStartEffect()
+        {
+            owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Quickness, 1);
+            var allies = BattleObjectManager.instance.GetAliveList(owner.faction);
+            allies.Remove(owner);
+            var allyToBuff = RandomUtil.SelectOne(allies);
+            allyToBuff.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Quickness, 1);
+        }
     }
 
     public class PassiveAbility_bonds_base : PassiveAbilityBase
@@ -317,6 +346,17 @@ namespace CustomDLLs
             }
             return base.ChangeAttackTarget(card, idx);
         }
+
+        public override void OnRoundStart()
+        {
+            var bondsBuff = owner.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_bonds);
+            if (bondsBuff != null && bondsBuff.stack > 0)
+            {
+                RoundStartEffect();
+            }
+        }
+
+        public virtual void RoundStartEffect() { }
     }
 
     public class PassiveAbility_find_the_opening : PassiveAbilityBase
@@ -353,6 +393,58 @@ namespace CustomDLLs
                     return;
                 }
                 target.bufListDetail.AddKeywordBufByEtc(KeywordBuf.Decay, 1, owner);
+            }
+        }
+    }
+
+    public class PassiveAbility_keep_them_busy : PassiveAbilityBase
+    {
+        private int _count;
+
+        public override void OnRoundStart()
+        {
+            _count = 0;
+        }
+        public override void OnWinParrying(BattleDiceBehavior behavior)
+        {
+            if (behavior.Detail == BehaviourDetail.Evasion || behavior.Detail == BehaviourDetail.Guard)
+            {
+                _count++;
+                if (_count % 3 == 0)
+                {
+                    var target = behavior.card.target;
+                    target.bufListDetail.AddKeywordBufByEtc(KeywordBuf.Binding, 1);
+                    target.bufListDetail.AddKeywordBufByEtc(KeywordBuf.Weak, 1);
+                }
+            }
+        }
+    }
+
+    public class PassiveAbility_command_the_wind : PassiveAbilityBase
+    {
+        public override void OnRoundStart()
+        {
+            owner.breakDetail.blockRecoverBreakByEvaision = true;
+        }
+        public override void OnWinParrying(BattleDiceBehavior behavior)
+        {
+            if (behavior.Type == BehaviourType.Def
+                && behavior.Detail == BehaviourDetail.Evasion
+                && (behavior.TargetDice.Detail == BehaviourDetail.Guard || behavior.TargetDice.Type == BehaviourType.Atk))
+            {
+                var recoveryAmount = behavior.DiceResultValue / 2;
+                owner.breakDetail.RecoverBreak(recoveryAmount);
+                var allies = BattleObjectManager.instance.GetAliveList(owner.faction);
+                allies.Remove(owner);
+                for (int i = 0; i < 2; i++)
+                {
+                    if (allies.Count() > 0)
+                    {
+                        var allyToHeal = RandomUtil.SelectOne(allies);
+                        allyToHeal.breakDetail.RecoverBreak(recoveryAmount);
+                        allies.Remove(allyToHeal);
+                    }
+                }
             }
         }
     }

@@ -8,6 +8,16 @@ namespace CustomDLLs
     public class DiceCardSelfAbility_extra_clash_dice : DiceCardSelfAbilityBase
     {
         public static string Desc = "[On Clash] Inflict 2 Fragile and add two Slash dice (Roll: 5-8) to the dice queue";
+        public override string[] Keywords
+        {
+            get
+            {
+                return new string[]
+                {
+                    "Vulnerable_Keyword"
+                };
+            }
+        }
 
         private const BehaviourDetail _diceType = BehaviourDetail.Slash;
         private const MotionDetail _motionType = MotionDetail.H;
@@ -26,8 +36,8 @@ namespace CustomDLLs
             firstDiceCopy.Detail = _diceType;
             firstDiceCopy.MotionDetail = _motionType;
             firstDiceCopy.Type = BehaviourType.Atk;
-            firstDiceCopy.ActionScript = null;
-            firstDiceCopy.Script = null;
+            firstDiceCopy.ActionScript = string.Empty;
+            firstDiceCopy.Script = string.Empty;
             for (int i = 0; i < diceCount; i++)
             {
                 var battleDiceBehavior = new BattleDiceBehavior();
@@ -40,28 +50,33 @@ namespace CustomDLLs
 
     public class DiceCardSelfAbility_together_to_the_end : DiceCardSelfAbilityBase
     {
-        public static string Desc = "Cannot be redirected. [On Combat Start][Target Ally] Spend 1 stack of The Bonds that Bind Us and inflict 2 Feeble and Disarm on self to revive the target at half health and max stagger resist at the end of the round.";
+        public static string Desc = "[On Combat Start] Spend 1 stack of The Bonds that Bind Us and inflict 2 Feeble and Disarm on self to revive all Incapacitated allies at half health and max stagger resist at the end of the round.";
+        public override string[] Keywords
+        {
+            get
+            {
+                return new string[]
+                {
+                    "Weak_Keyword",
+                    "Disarm_Keyword"
+                };
+            }
+        }
         public override void OnStartBattle()
         {
             var bondsBuff = owner.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_bonds);
             if (bondsBuff?.stack > 0)
             {
-                card.target.bufListDetail.AddBuf(new BattleUnitBuf_revive_at_turn_end());
+                var allies = BattleObjectManager.instance.GetAliveList(true)
+                    .Where(x => x.faction == owner.faction && x.IsKnockout());
+                foreach (var ally in allies)
+                {
+                    ally.bufListDetail.AddBuf(new BattleUnitBuf_revive_at_turn_end());
+                }
                 bondsBuff.stack--;
                 owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Weak, 2);
                 owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Disarm, 2);
             }
-        }
-
-        public override bool IsOnlyAllyUnit()
-        {
-            return true;
-        }
-
-        public override bool IsValidTarget(BattleUnitModel unit, BattleDiceCardModel self, BattleUnitModel targetUnit)
-        {
-            var bondsBuff = owner.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_bonds);
-            return bondsBuff?.stack > 0 && targetUnit.IsKnockout();
         }
     }
 
@@ -87,7 +102,7 @@ namespace CustomDLLs
                     bondsBuff.stack++;
                 }
                 var targetBondsBuff = card.target.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_bonds);
-                if (targetBondsBuff == null)
+                if (targetBondsBuff == null || targetBondsBuff.IsDestroyed())
                 {
                     card.target.bufListDetail.AddBuf(new BattleUnitBuf_bonds());
                 }
@@ -180,7 +195,7 @@ namespace CustomDLLs
                     {
                         BattlePlayingCardDataInUnitModel.SubTarget subTarget = new BattlePlayingCardDataInUnitModel.SubTarget();
                         subTarget.target = battleUnitModel;
-                        subTarget.targetSlotOrder = UnityEngine.Random.Range(0, battleUnitModel.speedDiceResult.Count);
+                        subTarget.targetSlotOrder = Random.Range(0, battleUnitModel.speedDiceResult.Count);
                         card.subTargets.Add(subTarget);
                         Debug.Log("Added subTarget: " + subTarget.target?.view.name);
                     }
@@ -197,9 +212,44 @@ namespace CustomDLLs
             }
         }
     }
+
+    public class DiceCardSelfAbility_bonds_restore : DiceCardSelfAbility_bonds_base
+    {
+        public static new string Desc = DiceCardSelfAbility_bonds_base.Desc + " If target is an enemy, spend 1 stack of The Bonds That Bind Us to grant 1 Light and clear all debuffs from allies";
+
+        protected override void TargetEnemy(BattleUnitBuf bondsBuff)
+        {
+            if (bondsBuff == null || bondsBuff.stack < 1)
+            {
+                return;
+            }
+            bondsBuff.stack--;
+            var allies = BattleObjectManager.instance.GetAliveList(owner.faction);
+            foreach (var ally in allies)
+            {
+                ally.cardSlotDetail.RecoverPlayPoint(1);
+                var debuffs = ally.bufListDetail.GetActivatedBufList().Where(x => x.positiveType == BufPositiveType.Negative);
+                foreach (var debuff in debuffs)
+                {
+                    debuff.Destroy();
+                }
+            }
+        }
+    }
+
     public class DiceCardSelfAbility_fastforward : DiceCardSelfAbilityBase
     {
         public static string Desc = "[On Use] Grant all allies 2 Haste next Scene and draw 1 page.";
+        public override string[] Keywords
+        {
+            get
+            {
+                return new string[]
+                {
+                    "Quickness_Keyword"
+                };
+            }
+        }
 
         public override void OnUseCard()
         {

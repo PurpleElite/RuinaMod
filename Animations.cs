@@ -12,33 +12,29 @@ namespace CustomDLLs
 	{
 		public override List<RencounterManager.MovingAction> GetMovingAction(ref RencounterManager.ActionAfterBehaviour self, ref RencounterManager.ActionAfterBehaviour opponent)
 		{
-			Debug.Log("execute animation called");
-			bool opponentBroken = false;
-			if (opponent.behaviourResultData != null)
+			if (self.result == Result.Win && self.behaviourResultData.playingCard.target.IsBreakLifeZero())
 			{
-				opponentBroken = !opponent.behaviourResultData.isBreaked;
+				var moveList = new List<RencounterManager.MovingAction>();
+				var movingAction1 = new RencounterManager.MovingAction(ActionDetail.Move, CharMoveState.Stop, 0f, true, 1f);
+				var movingAction2 = new RencounterManager.MovingAction(ActionDetail.Fire, CharMoveState.Stop);
+				movingAction2.SetEffectTiming(EffectTiming.PRE, EffectTiming.PRE, EffectTiming.PRE);
+				movingAction2.customEffectRes = "TwistedElena_H";
+				moveList.Add(movingAction1);
+				moveList.Add(movingAction2);
+
+				if (opponent.infoList.Count > 0)
+				{
+					opponent.infoList.Clear();
+				}
+				opponent.infoList.Add(new RencounterManager.MovingAction(ActionDetail.Damaged, CharMoveState.Stop, 0f, true, 1f));
+				opponent.infoList.Add(new RencounterManager.MovingAction(ActionDetail.Damaged, CharMoveState.Knockback, 2f, true));
+
+				return moveList;
 			}
-			Debug.Log("opponentBroken: " + opponentBroken);
-			if (self.result != Result.Win || !opponentBroken)
-			{
+			else
+            {
 				return base.GetMovingAction(ref self, ref opponent);
 			}
-			var moveList = new List<RencounterManager.MovingAction>();
-			var movingAction1 = new RencounterManager.MovingAction(ActionDetail.Move, CharMoveState.Stop, 0f, true, 1f);
-			var movingAction2 = new RencounterManager.MovingAction(ActionDetail.Fire, CharMoveState.Stop);
-			movingAction2.SetEffectTiming(EffectTiming.PRE, EffectTiming.PRE, EffectTiming.PRE);
-			movingAction2.customEffectRes = "TwistedElena_H";
-			moveList.Add(movingAction1);
-			moveList.Add(movingAction2);
-
-			if (opponent.infoList.Count > 0)
-			{
-				opponent.infoList.Clear();
-			}
-			opponent.infoList.Add(new RencounterManager.MovingAction(ActionDetail.Damaged, CharMoveState.Stop, 0f, true, 1f));
-			opponent.infoList.Add(new RencounterManager.MovingAction(ActionDetail.Damaged, CharMoveState.Knockback, 2f, true));
-
-			return moveList;
 		}
 	}
 

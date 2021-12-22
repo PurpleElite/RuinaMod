@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
@@ -38,6 +37,11 @@ namespace CustomDLLs
                 Destroy();
             }
         }
+
+        public override void OnBreakState()
+        {
+            stack--;
+        }
     }
 
     public class BattleUnitBuf_revive_at_turn_end : BattleUnitBuf
@@ -60,10 +64,10 @@ namespace CustomDLLs
     public class BattleUnitBuf_unstable_entropy : BattleUnitBuf
     {
         private const string buffName = "UnstableEntropy";
-        private const int overflowValue = 5;
-        private PassiveAbilityBase addedPassive;
+        private const int overflowValue = 4;
+        //private PassiveAbilityBase addedPassive;
 
-        public static int Duration = 2;
+        public static int Duration = 3;
         public override BufPositiveType positiveType => BufPositiveType.Negative;
 
         protected override string keywordId
@@ -90,7 +94,7 @@ namespace CustomDLLs
         public override void OnRoundStart()
         {
             var erosionBuff = _owner.bufListDetail.GetActivatedBuf(KeywordBuf.Decay);
-            _owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Quickness, (erosionBuff?.stack + 1) / 2 ?? 0);
+            _owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Quickness, erosionBuff?.stack ?? 0);
             if (stack >= overflowValue)
             {
                 var allies = BattleObjectManager.instance.GetAliveList(_owner.faction);
