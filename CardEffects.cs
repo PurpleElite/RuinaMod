@@ -1,6 +1,7 @@
 ﻿using LOR_DiceSystem;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using UnityEngine;
 
 namespace CustomDLLs
@@ -62,20 +63,38 @@ namespace CustomDLLs
                 };
             }
         }
+
+        IEnumerable<BattleUnitModel> targets; 
         public override void OnStartBattle()
         {
             var bondsBuff = owner.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_bonds);
             if (bondsBuff?.stack > 0)
             {
-                var allies = BattleObjectManager.instance.GetAliveList(true)
+                targets = BattleObjectManager.instance.GetAliveList(true)
                     .Where(x => x.faction == owner.faction && x.IsKnockout());
-                foreach (var ally in allies)
-                {
-                    ally.bufListDetail.AddBuf(new BattleUnitBuf_revive_at_turn_end());
-                }
+                //foreach (var ally in allies)
+                //{
+                //    ally.bufListDetail.AddBuf(new BattleUnitBuf_revive_at_turn_end());
+                //}
                 bondsBuff.stack--;
                 owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Weak, 2);
                 owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Disarm, 2);
+            }
+        }
+
+        public override void OnRoundEnd(BattleUnitModel unit, BattleDiceCardModel self)
+        {
+            if (targets?.Count() > 0)
+            {
+                var knockoutField = typeof(BattleUnitBaseModel).GetField("_isKnockout", BindingFlags.NonPublic | BindingFlags.Instance);
+                foreach (var target in targets)
+                {
+                    var knockoutBuf = target.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_knockout);
+                    knockoutBuf?.Destroy();
+                    knockoutField.SetValue(target, false);
+                    target.Revive(target.MaxHp / 2);
+                    target.breakDetail.ResetGauge();
+                }
             }
         }
     }
@@ -215,7 +234,7 @@ namespace CustomDLLs
 
     public class DiceCardSelfAbility_bonds_restore : DiceCardSelfAbility_bonds_base
     {
-        public static new string Desc = DiceCardSelfAbility_bonds_base.Desc + " If target is an enemy, spend 1 stack of The Bonds That Bind Us to grant 1 Light and clear all debuffs from allies";
+        public static new string Desc = DiceCardSelfAbility_bonds_base.Desc + " If target is an enemy, spend 1 stack of The Bonds That Bind Us to grant 1 Light and 1 Positive Emotion Point to allies and purge their ailments";
 
         protected override void TargetEnemy(BattleUnitBuf bondsBuff)
         {
@@ -228,6 +247,7 @@ namespace CustomDLLs
             foreach (var ally in allies)
             {
                 ally.cardSlotDetail.RecoverPlayPoint(1);
+                ally.emotionDetail.CreateEmotionCoin(EmotionCoinType.Positive);
                 var debuffs = ally.bufListDetail.GetActivatedBufList().Where(x => x.positiveType == BufPositiveType.Negative);
                 foreach (var debuff in debuffs)
                 {
@@ -262,4 +282,76 @@ namespace CustomDLLs
             }
         }
     }
+
+    public class DiceCardSelfAbility_eyes_on_me : DiceCardSelfAbilityBase
+    {
+        public static string Desc = "[On Use] Draw 1 page. [On Clash] Change the dice on this page to evasion dice.";
+
+        public override void OnUseCard()
+        {
+            owner.allyCardDetail.DrawCards(1);
+        }
+
+        public override void OnStartParrying()
+        {
+            foreach (var die in card.cardBehaviorQueue)
+            {
+                var behavior = die.behaviourInCard.Copy();
+                behavior.Detail = BehaviourDetail.Evasion;
+                behavior.Type = BehaviourType.Def;
+                behavior.EffectRes = "ch2_e";
+                behavior.MotionDetail = MotionDetail.E;
+                die.behaviourInCard = behavior;
+            }
+        }
+    }
+
+    public class DiceCardSelfAbility_willpower : DiceCardSelfAbilityBase
+    {
+        public static string Desc = "[On Use] Gain Positive Emotion Points equal to current Emotion Level. If at Emotion Level 5 gain 4 Light";
+
+        public override void OnUseCard()
+        {
+            var emotionDetail = owner.emotionDetail;
+            emotionDetail.CreateEmotionCoin(EmotionCoinType.Positive, emotionDetail.EmotionLevel);
+            if (emotionDetail.EmotionLevel >= 5)
+            {
+                owner.cardSlotDetail.RecoverPlayPoint(4);
+            }
+        }
+    }
+
+    public class DiceCardSelfAbility_staggerProtection3start : DiceCardSelfAbilityBase
+    {
+        public static string Desc = "[Combat Start] Gain 3 Stagger Protection";
+
+        public override string[] Keywords
+        {
+            get
+            {
+                return new string[]
+                {
+                "bstart_Keyword",
+                "BreakProtection_Keyword"
+                };
+            }
+        }
+
+        public override void OnStartBattle()
+        {
+            owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.BreakProtection, 3, owner);
+        }
+    }
+
+    //public class DiceCardSelfAbility_keep_them_distracted : DiceCardSelfAbilityBase
+    //{
+    //    public static string Desc = "[On Play] Spend one stack of The Bonds that Bind Us to hide the targets of all of Linus's pages this Scene";
+
+    //    public override bool OnChooseCard(BattleUnitModel owner)
+    //    {
+    //        return base.OnChooseCard(owner);
+    //    }
+
+    //    public override 
+    //}
 }

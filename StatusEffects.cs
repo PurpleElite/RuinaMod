@@ -44,22 +44,22 @@ namespace CustomDLLs
         }
     }
 
-    public class BattleUnitBuf_revive_at_turn_end : BattleUnitBuf
-    {
-        public override bool Hide => true;
-        public override void OnRoundEndTheLast()
-        {
-            if (_owner.IsKnockout())
-            {
-                var knockoutBuf = _owner.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_knockout);
-                knockoutBuf?.Destroy();
-                typeof(BattleUnitBaseModel).GetField("_isKnockout", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(_owner, false);
-                _owner.SetHp(_owner.MaxHp / 2);
-                _owner.breakDetail.ResetGauge();
-                Destroy();
-            }
-        }
-    }
+    //public class BattleUnitBuf_revive_at_turn_end : BattleUnitBuf
+    //{
+    //    public override bool Hide => true;
+    //    public override void OnRoundEndTheLast()
+    //    {
+    //        if (_owner.IsKnockout())
+    //        {
+    //            var knockoutBuf = _owner.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_knockout);
+    //            knockoutBuf?.Destroy();
+    //            typeof(BattleUnitBaseModel).GetField("_isKnockout", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(_owner, false);
+    //            _owner.Revive(_owner.MaxHp / 2);
+    //            _owner.breakDetail.ResetGauge();
+    //            Destroy();
+    //        }
+    //    }
+    //}
 
     public class BattleUnitBuf_unstable_entropy : BattleUnitBuf
     {
@@ -95,13 +95,17 @@ namespace CustomDLLs
         {
             var erosionBuff = _owner.bufListDetail.GetActivatedBuf(KeywordBuf.Decay);
             _owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Quickness, erosionBuff?.stack ?? 0);
-            if (stack >= overflowValue)
+            if (erosionBuff.stack >= overflowValue)
             {
                 var allies = BattleObjectManager.instance.GetAliveList(_owner.faction);
                 allies.Remove(_owner);
                 foreach (var ally in allies)
                 {
-                    ally.bufListDetail.AddKeywordBufByEtc(KeywordBuf.Decay, 1);
+                    ally.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Decay, 1);
+                    if (ally.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay decay)
+                    {
+                        decay.ChangeToYanDecay();
+                    }
                 }
             }
             base.OnRoundStart();

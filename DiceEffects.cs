@@ -84,4 +84,24 @@ namespace CustomDLLs
             }
         } 
     }
+
+    public class DiceCardAbility_powerDown3targetAtk : DiceCardAbilityBase
+    {
+        public static string Desc = "Reduce Power of target's current Offensive die by 3";
+
+        public override void BeforeRollDice()
+        {
+            if (behavior.TargetDice != null)
+            {
+                BattleDiceBehavior targetDice = behavior.TargetDice;
+                if (IsAttackDice(targetDice.Detail))
+                {
+                    targetDice.ApplyDiceStatBonus(new DiceStatBonus
+                    {
+                        power = -3
+                    });
+                }
+            }
+        }
+    }
 }

@@ -12,7 +12,8 @@ namespace CustomDLLs
 	{
 		public override List<RencounterManager.MovingAction> GetMovingAction(ref RencounterManager.ActionAfterBehaviour self, ref RencounterManager.ActionAfterBehaviour opponent)
 		{
-			if (self.result == Result.Win && self.behaviourResultData.playingCard.target.IsBreakLifeZero())
+			var target = self.behaviourResultData.playingCard.target;
+			if (self.result == Result.Win && (target.IsBreakLifeZero() || target.breakDetail.breakGauge == 0))
 			{
 				var moveList = new List<RencounterManager.MovingAction>();
 				var movingAction1 = new RencounterManager.MovingAction(ActionDetail.Move, CharMoveState.Stop, 0f, true, 1f);

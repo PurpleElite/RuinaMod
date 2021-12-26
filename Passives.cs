@@ -238,12 +238,13 @@ namespace CustomDLLs
 
     public class PassiveAbility_together_to_the_end : PassiveAbilityBase
     {
-        public static string Desc = "Allies are only knocked out while this character is alive. Gain a unique card that revives an ally and weakens the user for the turn at the cost of a stack of The Bonds that Bind Us.";
+        public static string Desc = "Allies are knocked out instead of dying while this character is alive. Gain a unique card that revives an ally and weakens the user for the turn at the cost of a stack of The Bonds that Bind Us.";
         private const int _cardId = 13;
         public override void OnWaveStart()
         {
             owner.allyCardDetail.AddNewCard(new LorId(ModData.WorkshopId, _cardId));
             var allies = BattleObjectManager.instance.GetAliveList(owner.faction);
+            allies.Remove(owner);
             foreach (var ally in allies)
             {
                 ally.SetKnockoutInsteadOfDeath(true);
@@ -251,11 +252,20 @@ namespace CustomDLLs
             }
         }
 
+        public override void OnDie()
+        {
+            var allies = BattleObjectManager.instance.GetFriendlyAllList(owner.faction);
+            foreach (var ally in allies)
+            {
+                ally.SetKnockoutInsteadOfDeath(false);
+            }
+        }
+
         public override int GetPriorityAdder(BattleDiceCardModel card, int speed)
         {
             if (card.GetID() == new LorId(ModData.WorkshopId, _cardId))
             {
-                var allies = BattleObjectManager.instance.GetAliveList(owner.faction);
+                var allies = BattleObjectManager.instance.GetFriendlyAllList(owner.faction);
                 if (allies.Any(x => x.IsKnockout()))
                 {
                     return 200;
@@ -283,7 +293,7 @@ namespace CustomDLLs
         public override int CardId { get => 10; }
         public override void RoundStartEffect()
         {
-            var allies = BattleObjectManager.instance.GetAliveList(owner.faction).Where(x => !x.IsKnockout()).ToList();
+            var allies = BattleObjectManager.instance.GetAliveList(owner.faction).ToList();
             for (int i = 0; i < 2; i++)
             {
                 if (allies.Count() > 0)
@@ -392,7 +402,11 @@ namespace CustomDLLs
                 {
                     return;
                 }
-                target.bufListDetail.AddKeywordBufByEtc(KeywordBuf.Decay, 1, owner);
+                target.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Decay, 1, owner);
+                if (target.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay decay)
+                {
+                    decay.ChangeToYanDecay();
+                }
             }
         }
     }
@@ -422,7 +436,7 @@ namespace CustomDLLs
 
     public class PassiveAbility_command_the_wind : PassiveAbilityBase
     {
-        public override void OnRoundStart()
+        public override void OnWaveStart()
         {
             owner.breakDetail.blockRecoverBreakByEvaision = true;
         }
@@ -445,6 +459,29 @@ namespace CustomDLLs
                         allies.Remove(allyToHeal);
                     }
                 }
+            }
+        }
+    }
+
+    public class PassiveAbility_sting_like_a_bee : PassiveAbilityBase
+    {
+        public override void OnWinParrying(BattleDiceBehavior behavior)
+        {
+            if (behavior?.Detail == BehaviourDetail.Evasion && behavior?.DiceVanillaValue == behavior?.GetDiceMax())
+            {
+                var diceBehavior = new BattleDiceBehavior
+                {
+                    behaviourInCard =
+                    {
+                        Min = 3,
+                        Dice = 4,
+                        Type = BehaviourType.Atk,
+                        Detail = BehaviourDetail.Penetrate,
+                        MotionDetail = MotionDetail.Z,
+                        EffectRes = "Bayyard_Z"
+                    }
+                };
+                behavior.card.AddDice(diceBehavior);
             }
         }
     }
