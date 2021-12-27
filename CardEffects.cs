@@ -64,13 +64,20 @@ namespace CustomDLLs
             }
         }
 
-        IEnumerable<BattleUnitModel> targets; 
+        IEnumerable<BattleUnitModel> _targets;
+
+        public override bool OnChooseCard(BattleUnitModel owner)
+        {
+            return owner.bufListDetail.GetActivatedBufList().Any(x => x is BattleUnitBuf_bonds bondBuff && bondBuff.stack > 0);
+        }
+
         public override void OnStartBattle()
         {
             var bondsBuff = owner.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_bonds);
+            Debug.Log("[SERAPH] bonds stacks: " + bondsBuff?.stack);
             if (bondsBuff?.stack > 0)
             {
-                targets = BattleObjectManager.instance.GetAliveList(true)
+                _targets = BattleObjectManager.instance.GetAliveList(true)
                     .Where(x => x.faction == owner.faction && x.IsKnockout());
                 //foreach (var ally in allies)
                 //{
@@ -84,10 +91,11 @@ namespace CustomDLLs
 
         public override void OnRoundEnd(BattleUnitModel unit, BattleDiceCardModel self)
         {
-            if (targets?.Count() > 0)
+            Debug.Log("[SERAPH] revive targets count: " + _targets?.Count());
+            if (_targets?.Count() > 0)
             {
                 var knockoutField = typeof(BattleUnitBaseModel).GetField("_isKnockout", BindingFlags.NonPublic | BindingFlags.Instance);
-                foreach (var target in targets)
+                foreach (var target in _targets)
                 {
                     var knockoutBuf = target.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_knockout);
                     knockoutBuf?.Destroy();

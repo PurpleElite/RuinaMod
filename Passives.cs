@@ -481,6 +481,7 @@ namespace CustomDLLs
                         EffectRes = "Bayyard_Z"
                     }
                 };
+                diceBehavior.SetIndex(behavior.card.cardBehaviorQueue.Count());
                 behavior.card.AddDice(diceBehavior);
             }
         }
