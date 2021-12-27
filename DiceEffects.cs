@@ -71,7 +71,7 @@ namespace CustomDLLs
         {
             Debug.Log("entropy OnSucceedAttack()");
             var buffDetail = target.bufListDetail;
-            var buff = (BattleUnitBuf_unstable_entropy)buffDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_unstable_entropy);
+            var buff = (BattleUnitBuf_unstable_entropy)buffDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_unstable_entropy);
             if (buff != null)
             {
                 Debug.Log("entropy setting stack to " + BattleUnitBuf_unstable_entropy.Duration + 1);

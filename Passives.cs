@@ -282,9 +282,16 @@ namespace CustomDLLs
     public class PassiveAbility_bonds_that_bind_us_defend : PassiveAbility_bonds_base
     {
         public override int CardId { get => 9; }
+
+        protected override int DesiredStacks { get => 2; }
+
         public override void RoundStartEffect()
         {
             owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Protection, 2);
+            var allies = BattleObjectManager.instance.GetAliveList(owner.faction);
+            allies.Remove(owner);
+            var allyToBuff = RandomUtil.SelectOne(allies);
+            allyToBuff.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Protection, 2);
         }
     }
 
@@ -328,6 +335,9 @@ namespace CustomDLLs
     {
         public static string Desc = "At the start of the act gain one stack of The Bonds that Bind Us and add a unique combat page to hand.";
         public virtual int CardId { get => 0; }
+
+        protected virtual int DesiredStacks { get => 1; }
+
         public override void OnWaveStart()
         {
             owner.bufListDetail.AddBuf(new BattleUnitBuf_bonds());
@@ -343,8 +353,8 @@ namespace CustomDLLs
         {
             if (card.GetID() == new LorId(ModData.WorkshopId, CardId))
             {
-                var bondsBuff = owner.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_bonds);
-                if (bondsBuff?.stack >= 2)
+                var bondsBuff = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_bonds);
+                if (bondsBuff?.stack > DesiredStacks)
                 {
                     Debug.Log("Targeting enemies with bond card");
                     return base.ChangeAttackTarget(card, idx);
@@ -357,9 +367,27 @@ namespace CustomDLLs
             return base.ChangeAttackTarget(card, idx);
         }
 
+        public override int GetPriorityAdder(BattleDiceCardModel card, int speed)
+        {
+            if (card.GetID() == new LorId(ModData.WorkshopId, CardId))
+            {
+                var allies = BattleObjectManager.instance.GetAliveList();
+                var bondsBuff = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_bonds);
+                if (allies.Count <= 1 && bondsBuff?.stack <= DesiredStacks)
+                {
+                    return -50;
+                }
+                else if (bondsBuff?.stack > DesiredStacks)
+                {
+                    return (speed - 8 * 10);
+                }
+            }
+            return base.GetPriorityAdder(card, speed);
+        }
+
         public override void OnRoundStart()
         {
-            var bondsBuff = owner.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_bonds);
+            var bondsBuff = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_bonds);
             if (bondsBuff != null && bondsBuff.stack > 0)
             {
                 RoundStartEffect();
@@ -367,6 +395,18 @@ namespace CustomDLLs
         }
 
         public virtual void RoundStartEffect() { }
+    }
+
+    public class PassiveAbility_fueled_by_light : PassiveAbilityBase
+    {
+        public override void OnRoundStart()
+        {
+            if (owner.emotionDetail.EmotionLevel >= 3)
+            {
+                owner.cardSlotDetail.RecoverPlayPoint(2);
+                owner.allyCardDetail.DrawCards(1);
+            }
+        }
     }
 
     public class PassiveAbility_find_the_opening : PassiveAbilityBase
@@ -408,6 +448,25 @@ namespace CustomDLLs
                     decay.ChangeToYanDecay();
                 }
             }
+        }
+
+        //Linus prioritizes targets based on which ones have unstable entropy, followed by which one has the most erosion 
+        public override BattleUnitModel ChangeAttackTarget(BattleDiceCardModel card, int idx)
+        {
+            var potentialTargets = BattleObjectManager.instance.GetAliveList(owner.faction == Faction.Player ? Faction.Enemy : Faction.Player);
+            //Shuffle first to avoid same target always being chosen when there are targets of equal priority
+            potentialTargets.OrderBy(x => UnityEngine.Random.value);
+            potentialTargets.OrderBy(x => x.bufListDetail.GetActivatedBuf(KeywordBuf.Decay).stack);
+            var targetsWithEntropy = potentialTargets.Where(x => x.bufListDetail.GetActivatedBufList().Any(y => y is BattleUnitBuf_unstable_entropy buff && buff?.stack > 1));
+            if (card.GetID() == new LorId(ModData.WorkshopId, 14))
+            {
+                var targetWithoutEntropy = potentialTargets.Except(targetsWithEntropy).FirstOrDefault();
+                if (targetWithoutEntropy != null)
+                {
+                    return targetWithoutEntropy;
+                }
+            }
+            return targetsWithEntropy.FirstOrDefault() ?? potentialTargets.First() ?? base.ChangeAttackTarget(card, idx);
         }
     }
 
@@ -469,6 +528,7 @@ namespace CustomDLLs
         {
             if (behavior?.Detail == BehaviourDetail.Evasion && behavior?.DiceVanillaValue == behavior?.GetDiceMax())
             {
+                Debug.Log("Sting like a bee triggered");
                 var diceBehavior = new BattleDiceBehavior
                 {
                     behaviourInCard =

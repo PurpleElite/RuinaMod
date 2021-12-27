@@ -1,4 +1,5 @@
 ﻿using LOR_DiceSystem;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -51,7 +52,7 @@ namespace CustomDLLs
 
     public class DiceCardSelfAbility_together_to_the_end : DiceCardSelfAbilityBase
     {
-        public static string Desc = "[On Combat Start] Spend 1 stack of The Bonds that Bind Us and inflict 2 Feeble and Disarm on self to revive all Incapacitated allies at half health and max stagger resist at the end of the round.";
+        public static string Desc = "[On Combat Start] Spend 1 stack of The Bonds that Bind Us and inflict 2 Feeble and Disarm on self [End of Scene] Revive all Incapacitated allies at half health and max stagger resist.";
         public override string[] Keywords
         {
             get
@@ -64,8 +65,6 @@ namespace CustomDLLs
             }
         }
 
-        IEnumerable<BattleUnitModel> _targets;
-
         public override bool OnChooseCard(BattleUnitModel owner)
         {
             return owner.bufListDetail.GetActivatedBufList().Any(x => x is BattleUnitBuf_bonds bondBuff && bondBuff.stack > 0);
@@ -73,36 +72,33 @@ namespace CustomDLLs
 
         public override void OnStartBattle()
         {
-            var bondsBuff = owner.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_bonds);
-            Debug.Log("[SERAPH] bonds stacks: " + bondsBuff?.stack);
+            var bondsBuff = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_bonds);
             if (bondsBuff?.stack > 0)
             {
-                _targets = BattleObjectManager.instance.GetAliveList(true)
-                    .Where(x => x.faction == owner.faction && x.IsKnockout());
-                //foreach (var ally in allies)
-                //{
-                //    ally.bufListDetail.AddBuf(new BattleUnitBuf_revive_at_turn_end());
-                //}
+                owner.bufListDetail.AddBuf(new BattleUnitBuf_revive_all_round_end());
                 bondsBuff.stack--;
                 owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Weak, 2);
                 owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Disarm, 2);
             }
         }
 
-        public override void OnRoundEnd(BattleUnitModel unit, BattleDiceCardModel self)
+        class BattleUnitBuf_revive_all_round_end : BattleUnitBuf
         {
-            Debug.Log("[SERAPH] revive targets count: " + _targets?.Count());
-            if (_targets?.Count() > 0)
+            public override bool Hide => true;
+            public override void OnRoundEnd()
             {
+                var targets = BattleObjectManager.instance.GetList(_owner.faction).Where(x => x.IsKnockout());
+                Debug.Log("[SERAPH] revive targets count: " + targets?.Count());
                 var knockoutField = typeof(BattleUnitBaseModel).GetField("_isKnockout", BindingFlags.NonPublic | BindingFlags.Instance);
-                foreach (var target in _targets)
+                foreach (var target in targets ?? Array.Empty<BattleUnitModel>())
                 {
-                    var knockoutBuf = target.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_knockout);
-                    knockoutBuf?.Destroy();
+                    target.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_knockout)?.Destroy();
                     knockoutField.SetValue(target, false);
                     target.Revive(target.MaxHp / 2);
-                    target.breakDetail.ResetGauge();
+                    target.breakDetail.RecoverBreakLife(_owner.MaxBreakLife);
+                    SingletonBehavior<BattleManagerUI>.Instance.ui_unitListInfoSummary.UpdateCharacterProfile(target, target.faction, target.hp, target.breakDetail.breakGauge);
                 }
+                Destroy();
             }
         }
     }
@@ -116,7 +112,7 @@ namespace CustomDLLs
             {
                 return;
             }
-            var bondsBuff = owner.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_bonds);
+            var bondsBuff = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_bonds);
             if (card.target.faction == owner.faction)
             {
                 Debug.Log("bondsBuff targeting ally");
@@ -128,7 +124,7 @@ namespace CustomDLLs
                 {
                     bondsBuff.stack++;
                 }
-                var targetBondsBuff = card.target.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_bonds);
+                var targetBondsBuff = card.target.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_bonds);
                 if (targetBondsBuff == null || targetBondsBuff.IsDestroyed())
                 {
                     card.target.bufListDetail.AddBuf(new BattleUnitBuf_bonds());
@@ -222,7 +218,7 @@ namespace CustomDLLs
                     {
                         BattlePlayingCardDataInUnitModel.SubTarget subTarget = new BattlePlayingCardDataInUnitModel.SubTarget();
                         subTarget.target = battleUnitModel;
-                        subTarget.targetSlotOrder = Random.Range(0, battleUnitModel.speedDiceResult.Count);
+                        subTarget.targetSlotOrder = UnityEngine.Random.Range(0, battleUnitModel.speedDiceResult.Count);
                         card.subTargets.Add(subTarget);
                         Debug.Log("Added subTarget: " + subTarget.target?.view.name);
                     }
