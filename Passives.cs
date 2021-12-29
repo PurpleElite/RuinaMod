@@ -526,24 +526,62 @@ namespace CustomDLLs
     {
         public override void OnWinParrying(BattleDiceBehavior behavior)
         {
-            if (behavior?.Detail == BehaviourDetail.Evasion && behavior?.DiceVanillaValue == behavior?.GetDiceMax())
+            if (behavior != null)
             {
-                Debug.Log("Sting like a bee triggered");
-                var diceBehavior = new BattleDiceBehavior
+                if (behavior.Type == BehaviourType.Def && behavior.Detail == BehaviourDetail.Evasion && behavior?.DiceVanillaValue == behavior.GetDiceMax())
                 {
-                    behaviourInCard =
+                    Debug.Log("Sting like a bee triggered");
+                    var diceBehavior = new BattleDiceBehavior
                     {
-                        Min = 3,
-                        Dice = 4,
-                        Type = BehaviourType.Atk,
-                        Detail = BehaviourDetail.Penetrate,
-                        MotionDetail = MotionDetail.Z,
-                        EffectRes = "Bayyard_Z"
-                    }
-                };
-                diceBehavior.SetIndex(behavior.card.cardBehaviorQueue.Count());
-                behavior.card.AddDice(diceBehavior);
+                        behaviourInCard = new DiceBehaviour
+                        {
+                            Min = 3,
+                            Dice = 4,
+                            Type = BehaviourType.Atk,
+                            Detail = BehaviourDetail.Penetrate,
+                            MotionDetail = MotionDetail.Z,
+                            EffectRes = "Bayyard_Z"
+                        }
+                    };
+                    diceBehavior.SetIndex(behavior.card.cardBehaviorQueue.Count());
+                    behavior.card.AddDice(diceBehavior);
+                }
             }
+        }
+    }
+
+    public class PassiveAbility_twelve_fixers_evade : PassiveAbilityBase
+    {
+        public override void BeforeRollDice(BattleDiceBehavior behavior)
+        {
+            if (behavior.Detail == BehaviourDetail.Evasion)
+            {
+                int min = 2;
+                int max = owner.emotionDetail.EmotionLevel >= 3 ? 1 : 0;
+                behavior.ApplyDiceStatBonus(new DiceStatBonus
+                {
+                    min = min,
+                    max = max
+                });
+            }
+        }
+    }
+
+    public class PassiveAbility_retaliateJo : PassiveAbilityBase
+    {
+        public override void OnStartBattle()
+        {
+            DiceCardXmlInfo card = ItemXmlDataList.instance.GetCardItem(new LorId(ModData.WorkshopId, 20));
+            List<BattleDiceBehavior> counterDice = new List<BattleDiceBehavior>();
+            int index = 0;
+            foreach (DiceBehaviour diceBehaviour in card.DiceBehaviourList)
+            {
+                BattleDiceBehavior battleDiceBehavior = new BattleDiceBehavior();
+                battleDiceBehavior.behaviourInCard = diceBehaviour.Copy();
+                battleDiceBehavior.SetIndex(index++);
+                counterDice.Add(battleDiceBehavior);
+            }
+            owner.cardSlotDetail.keepCard.AddBehaviours(card, counterDice);
         }
     }
 

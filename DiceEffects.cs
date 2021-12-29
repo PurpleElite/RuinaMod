@@ -45,16 +45,14 @@ namespace CustomDLLs
         private void EarthQuake()
         {
             FilterUtil.ShowWarpBloodFilter();
-            BattleCamManager instance = SingletonBehavior<BattleCamManager>.Instance;
-            CameraFilterPack_FX_EarthQuake cameraFilterPack_FX_EarthQuake = ((instance != null) ? instance.EffectCam.gameObject.AddComponent<CameraFilterPack_FX_EarthQuake>() : null) ?? null;
+            CameraFilterPack_FX_EarthQuake cameraFilterPack_FX_EarthQuake = (SingletonBehavior<BattleCamManager>.Instance?.EffectCam.gameObject.AddComponent<CameraFilterPack_FX_EarthQuake>()) ?? null;
             if (cameraFilterPack_FX_EarthQuake != null)
             {
                 cameraFilterPack_FX_EarthQuake.X = 0.075f;
                 cameraFilterPack_FX_EarthQuake.Y = 0.01f;
                 cameraFilterPack_FX_EarthQuake.Speed = 50f;
             }
-            BattleCamManager instance2 = SingletonBehavior<BattleCamManager>.Instance;
-            AutoScriptDestruct autoScriptDestruct = ((instance2 != null) ? instance2.EffectCam.gameObject.AddComponent<AutoScriptDestruct>() : null) ?? null;
+            AutoScriptDestruct autoScriptDestruct = (SingletonBehavior<BattleCamManager>.Instance?.EffectCam.gameObject.AddComponent<AutoScriptDestruct>()) ?? null;
             if (autoScriptDestruct != null)
             {
                 autoScriptDestruct.targetScript = cameraFilterPack_FX_EarthQuake;
@@ -103,5 +101,28 @@ namespace CustomDLLs
                 }
             }
         }
+    }
+
+    public class DiceCardAbility_borrowed_time : DiceCardAbilityBase
+    {
+        public static string Desc = "[On Hit] Recycle this die unless it rolls the minimum value (Up to 4 times)";
+        public override void OnSucceedAttack()
+        {
+            if (count == 0)
+            {
+                BehaviourAction_sweeperOnly.movable = true;
+            }
+            if (count >= 4)
+            {
+                return;
+            }
+            if (behavior.DiceVanillaValue > behavior.GetDiceMin())
+            {
+                ActivateBonusAttackDice();
+                count++;
+            }
+        }
+
+        private int count;
     }
 }

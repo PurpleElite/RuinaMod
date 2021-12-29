@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Battle.DiceAttackEffect;
 using LOR_DiceSystem;
 using LOR_XML;
@@ -37,6 +38,48 @@ namespace CustomDLLs
 				return base.GetMovingAction(ref self, ref opponent);
 			}
 		}
+	}
+
+	public class BehaviourAction_borrowed_time : BehaviourActionBase
+	{
+		public override bool IsMovable()
+		{
+			return _movable;
+		}
+		private static readonly bool _movable = true;
+		private static ActionDetail previousAction;
+		private readonly ActionDetail[] _possibleActions = new ActionDetail[] { ActionDetail.Slash, ActionDetail.Penetrate, ActionDetail.Hit, ActionDetail.Move };
+
+		public override List<RencounterManager.MovingAction> GetMovingAction(ref RencounterManager.ActionAfterBehaviour self, ref RencounterManager.ActionAfterBehaviour opponent)
+		{
+			var moveActions = new List<RencounterManager.MovingAction>();
+			if (self.result == Result.Win && self.data.actionType == ActionType.Atk && !opponent.behaviourResultData.IsFarAtk())
+			{
+				var finalAttack = self.behaviourResultData.resultDiceValue == self.behaviourResultData.resultDiceMin;
+                var movingAction = new RencounterManager.MovingAction(NextAction(), CharMoveState.MoveOpponent, 0f, false, 0.1f);
+				movingAction.SetEffectTiming(EffectTiming.PRE, EffectTiming.NONE, EffectTiming.NONE);
+				moveActions.Add(movingAction);
+				var movingAction2 = new RencounterManager.MovingAction(NextAction(), CharMoveState.MoveOpponent, 0f, false, 0.1f);
+				movingAction2.SetEffectTiming(EffectTiming.PRE, EffectTiming.PRE, EffectTiming.PRE);
+				moveActions.Add(movingAction2);
+				opponent.infoList.Add(new RencounterManager.MovingAction(ActionDetail.Damaged, CharMoveState.Stop, 1f, false, 0f));
+				opponent.infoList.Add(new RencounterManager.MovingAction(ActionDetail.Damaged, finalAttack ? CharMoveState.Knockback : CharMoveState.Stop, 3f, false, 0.1f));
+				BehaviourAction_borisAction.movable = false;
+			}
+			else
+			{
+				moveActions = base.GetMovingAction(ref self, ref opponent);
+				BehaviourAction_borisAction.movable = true;
+			}
+			return moveActions;
+		}
+
+		private ActionDetail NextAction()
+        {
+			var nextAction = RandomUtil.SelectOne(_possibleActions.Where(x => x != previousAction).ToArray());
+			previousAction = nextAction;
+			return nextAction;
+        }
 	}
 
 	public class BehaviourAction_linus_area : BehaviourActionBase

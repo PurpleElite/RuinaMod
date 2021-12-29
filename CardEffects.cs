@@ -216,9 +216,11 @@ namespace CustomDLLs
                     }
                     if (flag)
                     {
-                        BattlePlayingCardDataInUnitModel.SubTarget subTarget = new BattlePlayingCardDataInUnitModel.SubTarget();
-                        subTarget.target = battleUnitModel;
-                        subTarget.targetSlotOrder = UnityEngine.Random.Range(0, battleUnitModel.speedDiceResult.Count);
+                        BattlePlayingCardDataInUnitModel.SubTarget subTarget = new BattlePlayingCardDataInUnitModel.SubTarget
+                        {
+                            target = battleUnitModel,
+                            targetSlotOrder = UnityEngine.Random.Range(0, battleUnitModel.speedDiceResult.Count)
+                        };
                         card.subTargets.Add(subTarget);
                         Debug.Log("Added subTarget: " + subTarget.target?.view.name);
                     }
@@ -335,8 +337,8 @@ namespace CustomDLLs
             {
                 return new string[]
                 {
-                "bstart_Keyword",
-                "BreakProtection_Keyword"
+                    "bstart_Keyword",
+                    "BreakProtection_Keyword"
                 };
             }
         }
@@ -344,6 +346,27 @@ namespace CustomDLLs
         public override void OnStartBattle()
         {
             owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.BreakProtection, 3, owner);
+        }
+    }
+
+    public class DiceCardSelfAbility_borrowed_time : DiceCardSelfAbilityBase
+    {
+        public static string Desc = "[On Use] Inflict self with 2 Bind next Scene";
+
+        public override string[] Keywords
+        {
+            get
+            {
+                return new string[]
+                {
+                    "Binding_Keyword"
+                };
+            }
+        }
+
+        public override void OnUseCard()
+        {
+            owner.bufListDetail.AddKeywordBufByCard(KeywordBuf.Binding, 2, owner);
         }
     }
 
