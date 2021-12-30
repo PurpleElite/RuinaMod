@@ -95,6 +95,7 @@ namespace CustomDLLs
                     target.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_knockout)?.Destroy();
                     knockoutField.SetValue(target, false);
                     target.Revive(target.MaxHp / 2);
+                    target.breakDetail.nextTurnBreak = false;
                     target.breakDetail.RecoverBreakLife(_owner.MaxBreakLife);
                     SingletonBehavior<BattleManagerUI>.Instance.ui_unitListInfoSummary.UpdateCharacterProfile(target, target.faction, target.hp, target.breakDetail.breakGauge);
                 }
@@ -349,7 +350,7 @@ namespace CustomDLLs
         }
     }
 
-    public class DiceCardSelfAbility_borrowed_time : DiceCardSelfAbilityBase
+    public class DiceCardSelfAbility_borrowed_time_bind : DiceCardSelfAbilityBase
     {
         public static string Desc = "[On Use] Inflict self with 2 Bind next Scene";
 
