@@ -103,7 +103,7 @@ namespace CustomDLLs
         }
     }
 
-    public class DiceCardAbility_borrowed_time : DiceCardAbilityBase
+    public class DiceCardAbility_borrowed_time_recycle : DiceCardAbilityBase
     {
         public static string Desc = "[On Hit] Recycle this die unless it rolls the minimum value (Up to 4 times)";
         public override void OnSucceedAttack()
