@@ -46,7 +46,7 @@ namespace CustomDLLs
 		{
 			return _movable;
 		}
-		private static readonly bool _movable = true;
+		private static bool _movable = true;
 		private static ActionDetail previousAction;
 		private readonly ActionDetail[] _possibleActions = new ActionDetail[] { ActionDetail.Slash, ActionDetail.Penetrate, ActionDetail.Hit, ActionDetail.Move };
 
@@ -62,14 +62,14 @@ namespace CustomDLLs
 				var movingAction2 = new RencounterManager.MovingAction(NextAction(), CharMoveState.MoveOpponent, 0f, false, 0.1f);
 				movingAction2.SetEffectTiming(EffectTiming.PRE, EffectTiming.PRE, EffectTiming.PRE);
 				moveActions.Add(movingAction2);
-				opponent.infoList.Add(new RencounterManager.MovingAction(ActionDetail.Damaged, CharMoveState.Stop, 1f, false, 0f));
+				opponent.infoList.Add(new RencounterManager.MovingAction(ActionDetail.Damaged, CharMoveState.Stop, 0f, false, 0.1f));
 				opponent.infoList.Add(new RencounterManager.MovingAction(ActionDetail.Damaged, finalAttack ? CharMoveState.Knockback : CharMoveState.Stop, 3f, false, 0.1f));
-				BehaviourAction_borisAction.movable = false;
+				_movable = finalAttack;
 			}
 			else
 			{
 				moveActions = base.GetMovingAction(ref self, ref opponent);
-				BehaviourAction_borisAction.movable = true;
+				_movable = true;
 			}
 			return moveActions;
 		}
@@ -84,10 +84,8 @@ namespace CustomDLLs
 
 	public class BehaviourAction_linus_area : BehaviourActionBase
 	{
-		// Token: 0x06001177 RID: 4471 RVA: 0x0008DE71 File Offset: 0x0008C071
 		public override FarAreaEffect SetFarAreaAtkEffect(BattleUnitModel self)
 		{
-			Debug.Log("linus behavior action called");
 			_self = self;
 			FarAreaeffect_LinusArea farAreaeffect_LinusArea = new GameObject().AddComponent<FarAreaeffect_LinusArea>();
 			farAreaeffect_LinusArea.Init(self, Array.Empty<object>());

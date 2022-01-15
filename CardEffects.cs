@@ -52,7 +52,7 @@ namespace CustomDLLs
 
     public class DiceCardSelfAbility_together_to_the_end : DiceCardSelfAbilityBase
     {
-        public static string Desc = "[On Combat Start] Spend 1 stack of The Bonds that Bind Us and inflict 2 Feeble and Disarm on self [End of Scene] Revive all Incapacitated allies at half health and max stagger resist.";
+        public static string Desc = "[On Combat Start] Spend 1 stack of The Bonds that Bind Us and inflict 2 Feeble and Disarm on self. Reduce max Stagger Resist by 20% (Up to 40%) [End of Scene] Revive all Incapacitated allies at half health and max stagger resist.";
         public override string[] Keywords
         {
             get
@@ -64,6 +64,9 @@ namespace CustomDLLs
                 };
             }
         }
+
+        const int maxStaggerReductionPercent = 20;
+        const int maxStaggerMinimum = 40;
 
         public override bool OnChooseCard(BattleUnitModel owner)
         {
@@ -79,6 +82,27 @@ namespace CustomDLLs
                 bondsBuff.stack--;
                 owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Weak, 2);
                 owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Disarm, 2);
+
+                BattleUnitBuf activatedBuf = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_reduce_max_bp);
+                if (activatedBuf != null)
+                {
+                    activatedBuf.stack++;
+                }
+                else
+                {
+                    owner.bufListDetail.AddBuf(new BattleUnitBuf_reduce_max_bp());
+                }
+            }
+        }
+        class BattleUnitBuf_reduce_max_bp : BattleUnitBuf
+        {
+            
+            public override StatBonus GetStatBonus()
+            {
+                return new StatBonus
+                {
+                    breakRate = -Math.Min(maxStaggerMinimum, stack * maxStaggerReductionPercent)
+                };
             }
         }
 
