@@ -651,7 +651,7 @@ namespace CustomDLLs
         }
         public override void OnBattleEnd()
         {
-            Debug.Log($"{owner.view.name} stats:\n" +
+            Debug.Log($"{owner.UnitData.unitData.name} stats:\n" +
                 $"Damage Taken: {DamageTaken}\n" +
                 $"Damage Taken From Attacks: {DamageTakenFromAtacks}\n" +
                 $"Damage Taken From Erode: {DamageTakenFromErode}\n" +

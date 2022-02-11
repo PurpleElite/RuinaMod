@@ -1,4 +1,5 @@
 ﻿using LOR_DiceSystem;
+using LOR_BattleUnit_UI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -348,12 +349,12 @@ namespace CustomDLLs
         }
     }
 
-    public class DiceCardSelfAbility_force_aggro : DiceCardSelfAbilityBase
+    public class DiceCardSelfAbility_force_clash : DiceCardSelfAbilityBase
     {
         public static string Desc = "The targeted dice becomes untargetable and is forced to clash with this page";
 
-        private BattleUnitBuf_forceAggro _aggroBuf;
-        private PassiveAbility_forceAggro _aggroPassive;
+        private BattleUnitBuf_forceClash _aggroBuf;
+        private PassiveAbility_forceClash _aggroPassive;
         
         public override void OnApplyCard()
         {
@@ -367,9 +368,9 @@ namespace CustomDLLs
             
             foreach (var otherCard in BattleObjectManager.instance.GetAliveList().SelectMany(x => x.cardSlotDetail.cardAry).Where(x => x != null && x != card))
             {
-                Debug.Log("PCT OnApplyCard() otherCardOwner: " + otherCard.owner.view.name);
+                Debug.Log("PCT OnApplyCard() otherCardOwner: " + otherCard.owner.UnitData.unitData.name);
                 Debug.Log("otherCardName: " + otherCard.card.GetName());
-                Debug.Log("otherCardTarget: " + otherCard.target.view.name);
+                Debug.Log("otherCardTarget: " + otherCard.target.UnitData.unitData.name);
                 Debug.Log("otherCardTargetSlot: " + otherCard.targetSlotOrder);
                 if (otherCard.target == card.target && otherCard.targetSlotOrder == card.targetSlotOrder)
                 {
@@ -379,14 +380,18 @@ namespace CustomDLLs
                     Debug.Log("otherCard targetSlotOrder changed to: " + otherCard.targetSlotOrder);
                 }
             }
-            _aggroBuf = new BattleUnitBuf_forceAggro(card);
+            _aggroBuf = new BattleUnitBuf_forceClash(card);
             card.target.bufListDetail.AddBuf(_aggroBuf);
+            var speedDicesField = typeof(SpeedDiceSetter).GetField("_speedDices", BindingFlags.NonPublic | BindingFlags.Instance);
+            var targetDie = ((List<SpeedDiceUI>)speedDicesField.GetValue(card.target.view.speedDiceSetterUI))[card.targetSlotOrder];
+            targetDie.BlockDice(true, true);
             //_aggroPassive = new PassiveAbility_forceAggro(card);
             //target.owner.passiveDetail.AddPassive(_aggroPassive);
         }
 
         public override void OnReleaseCard()
         {
+            _aggroBuf?.RemoveRedirectionBufs();
             _aggroBuf?.Destroy();
         }
 
@@ -395,10 +400,10 @@ namespace CustomDLLs
             return false;
         }
         
-        private class PassiveAbility_forceAggro : PassiveAbilityBase
+        private class PassiveAbility_forceClash : PassiveAbilityBase
         {
             readonly BattlePlayingCardDataInUnitModel _aggroSource;
-            public PassiveAbility_forceAggro(BattlePlayingCardDataInUnitModel aggro)
+            public PassiveAbility_forceClash(BattlePlayingCardDataInUnitModel aggro)
             {
                 _aggroSource = aggro;
             }
@@ -413,34 +418,52 @@ namespace CustomDLLs
             }
         }
 
-        private class BattleUnitBuf_forceAggro : BattleUnitBuf
+        private class BattleUnitBuf_forceClash : BattleUnitBuf
         {
 
             readonly BattlePlayingCardDataInUnitModel _aggroSource;
             readonly FieldInfo _speedDiceField = typeof(LOR_BattleUnit_UI.SpeedDiceUI).GetField("_speedDiceIndex", BindingFlags.NonPublic | BindingFlags.Instance);
+            readonly List<SpeedDiceUI> _blockedDice = new List<SpeedDiceUI>();
+            readonly List<BattleUnitBuf_dont_target_die> _redirectBuffs = new List<BattleUnitBuf_dont_target_die>();
             public override bool Hide => true;
-            public BattleUnitBuf_forceAggro(BattlePlayingCardDataInUnitModel aggro)
+            public BattleUnitBuf_forceClash(BattlePlayingCardDataInUnitModel aggro)
             {
                 _aggroSource = aggro;
             }
 
+            public override void Init(BattleUnitModel owner)
+            {
+                foreach (var unit in BattleObjectManager.instance.GetAliveList())
+                {
+                    var buf = new BattleUnitBuf_dont_target_die(_aggroSource.target, _aggroSource.targetSlotOrder);
+                    _redirectBuffs.Add(buf);
+                    unit.bufListDetail.AddBuf(buf);
+                }
+            }
+
             public override List<BattleUnitModel> GetFixedTarget()
             {
-                var selectedDiceIndex = (int) _speedDiceField.GetValue(Singleton<LOR_BattleUnit_UI.SpeedDiceUI>.Instance);
+                //var selectedDiceIndex = (int) _speedDiceField.GetValue(Singleton<LOR_BattleUnit_UI.SpeedDiceUI>.Instance);
+                var selectedDiceIndex = BattleManagerUI.Instance.selectedAllyDice.OrderOfDice;
                 Debug.Log("GetFixedTarget() selectedDiceIndex: " + selectedDiceIndex);
                 if (selectedDiceIndex == _aggroSource.targetSlotOrder)
                 {
+                    var speedDicesField = typeof(SpeedDiceSetter).GetField("_speedDices", BindingFlags.NonPublic | BindingFlags.Instance);
+                    var targetDice = ((List<SpeedDiceUI>)speedDicesField.GetValue(_aggroSource.owner.view.speedDiceSetterUI));
+                    foreach (var die in targetDice.Where(x => x.OrderOfDice != _aggroSource.targetSlotOrder))
+                    {
+                        die.BlockDice(true, true);
+                        _blockedDice.Add(die);
+                    }
                     return new List<BattleUnitModel> { _aggroSource.owner };
+                }
+                foreach (var die in _blockedDice)
+                {
+                    die.SetBlockDice();
                 }
                 return base.GetFixedTarget();
             }
 
-            public override bool IsTargetable()
-            {
-                var selectedDiceIndex = (int)_speedDiceField.GetValue(Singleton<LOR_BattleUnit_UI.SpeedDiceUI>.Instance);
-                Debug.Log("IsTargetable() selectedDiceIndex: " + selectedDiceIndex);
-                return selectedDiceIndex == _aggroSource.targetSlotOrder || base.IsTargetable();
-            }
 
             //public override bool DirectAttack()
             //{
@@ -473,7 +496,41 @@ namespace CustomDLLs
 
             public override void OnEndBattlePhase()
             {
+                RemoveRedirectionBufs();
                 Destroy();
+            }
+
+            public void RemoveRedirectionBufs()
+            {
+                foreach (var buf in _redirectBuffs)
+                {
+                    buf?.Destroy();
+                }
+                _redirectBuffs.Clear();
+            }
+
+            private class BattleUnitBuf_dont_target_die : BattleUnitBuf
+            {
+                public override bool Hide => true;
+
+                BattleUnitModel _target;
+                int _targetSlot;
+
+                public BattleUnitBuf_dont_target_die(BattleUnitModel target, int targetSlot)
+                {
+                    _target = target;
+                    _targetSlot = targetSlot;
+                }
+
+                public override int ChangeTargetSlot(BattleDiceCardModel card, BattleUnitModel target, int currentSlot, int targetSlot, bool teamkill)
+                {
+                    if (currentSlot == _targetSlot && target == _target)
+                    {
+                        var indices = Enumerable.Range(0, _target.cardSlotDetail.cardAry.Count()).Where(x => x != _targetSlot).ToArray();
+                        return RandomUtil.SelectOne(indices);
+                    }
+                    return base.ChangeTargetSlot(card, target, currentSlot, targetSlot, teamkill);
+                }
             }
         }
     }
