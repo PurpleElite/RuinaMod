@@ -10,16 +10,7 @@ namespace CustomDLLs
     public class DiceCardSelfAbility_extra_clash_dice : DiceCardSelfAbilityBase
     {
         public static string Desc = "[On Clash] Inflict 2 Fragile and add two Slash dice (Roll: 5-8) to the dice queue";
-        public override string[] Keywords
-        {
-            get
-            {
-                return new string[]
-                {
-                    "Vulnerable_Keyword"
-                };
-            }
-        }
+        public override string[] Keywords =>  new string[] { "Vulnerable_Keyword" };
 
         private const BehaviourDetail _diceType = BehaviourDetail.Slash;
         private const MotionDetail _motionType = MotionDetail.H;
@@ -53,17 +44,7 @@ namespace CustomDLLs
     public class DiceCardSelfAbility_together_to_the_end : DiceCardSelfAbilityBase
     {
         public static string Desc = "[On Combat Start] Spend 1 stack of The Bonds that Bind Us and inflict 2 Feeble and Disarm on self. Reduce max Stagger Resist by 20% (Up to 40%) [End of Scene] Revive all Incapacitated allies at half health and max stagger resist.";
-        public override string[] Keywords
-        {
-            get
-            {
-                return new string[]
-                {
-                    "Weak_Keyword",
-                    "Disarm_Keyword"
-                };
-            }
-        }
+        public override string[] Keywords => new string[] { "Weak_Keyword", "Disarm_Keyword" };
 
         const int maxStaggerReductionPercent = 20;
         const int maxStaggerMinimum = 40;
@@ -291,16 +272,7 @@ namespace CustomDLLs
     public class DiceCardSelfAbility_fastforward : DiceCardSelfAbilityBase
     {
         public static string Desc = "[On Use] Grant all allies 2 Haste next Scene and draw 1 page.";
-        public override string[] Keywords
-        {
-            get
-            {
-                return new string[]
-                {
-                    "Quickness_Keyword"
-                };
-            }
-        }
+        public override string[] Keywords => new string[] { "Quickness_Keyword" };
 
         public override void OnUseCard()
         {
@@ -356,17 +328,7 @@ namespace CustomDLLs
     {
         public static string Desc = "[Combat Start] Gain 3 Stagger Protection";
 
-        public override string[] Keywords
-        {
-            get
-            {
-                return new string[]
-                {
-                    "bstart_Keyword",
-                    "BreakProtection_Keyword"
-                };
-            }
-        }
+        public override string[] Keywords => new string[] { "bstart_Keyword", "BreakProtection_Keyword" };
 
         public override void OnStartBattle()
         {
@@ -378,20 +340,141 @@ namespace CustomDLLs
     {
         public static string Desc = "[On Use] Inflict self with 2 Bind next Scene";
 
-        public override string[] Keywords
-        {
-            get
-            {
-                return new string[]
-                {
-                    "Binding_Keyword"
-                };
-            }
-        }
+        public override string[] Keywords => new string[] { "Binding_Keyword" };
 
         public override void OnUseCard()
         {
             owner.bufListDetail.AddKeywordBufByCard(KeywordBuf.Binding, 2, owner);
+        }
+    }
+
+    public class DiceCardSelfAbility_force_aggro : DiceCardSelfAbilityBase
+    {
+        public static string Desc = "The targeted dice becomes untargetable and is forced to clash with this page";
+
+        private BattleUnitBuf_forceAggro _aggroBuf;
+        private PassiveAbility_forceAggro _aggroPassive;
+        
+        public override void OnApplyCard()
+        {
+            var targetCardsDetail = card.target.cardSlotDetail;
+            var targetCard = targetCardsDetail.cardAry[card.targetSlotOrder];
+            if (targetCard != null)
+            {
+                targetCard.target = owner;
+                targetCard.targetSlotOrder = card.slotOrder;
+            }
+            
+            foreach (var otherCard in BattleObjectManager.instance.GetAliveList().SelectMany(x => x.cardSlotDetail.cardAry).Where(x => x != null && x != card))
+            {
+                Debug.Log("PCT OnApplyCard() otherCardOwner: " + otherCard.owner.view.name);
+                Debug.Log("otherCardName: " + otherCard.card.GetName());
+                Debug.Log("otherCardTarget: " + otherCard.target.view.name);
+                Debug.Log("otherCardTargetSlot: " + otherCard.targetSlotOrder);
+                if (otherCard.target == card.target && otherCard.targetSlotOrder == card.targetSlotOrder)
+                {
+                    Debug.Log("otherCard is targeting the same dice as PCT");
+                    var indices = Enumerable.Range(0, targetCardsDetail.cardAry.Count()).Where(x => x != card.targetSlotOrder).ToArray();
+                    otherCard.targetSlotOrder = RandomUtil.SelectOne(indices);
+                    Debug.Log("otherCard targetSlotOrder changed to: " + otherCard.targetSlotOrder);
+                }
+            }
+            _aggroBuf = new BattleUnitBuf_forceAggro(card);
+            card.target.bufListDetail.AddBuf(_aggroBuf);
+            //_aggroPassive = new PassiveAbility_forceAggro(card);
+            //target.owner.passiveDetail.AddPassive(_aggroPassive);
+        }
+
+        public override void OnReleaseCard()
+        {
+            _aggroBuf?.Destroy();
+        }
+
+        public override bool IsTargetChangable(BattleUnitModel attacker)
+        {
+            return false;
+        }
+        
+        private class PassiveAbility_forceAggro : PassiveAbilityBase
+        {
+            readonly BattlePlayingCardDataInUnitModel _aggroSource;
+            public PassiveAbility_forceAggro(BattlePlayingCardDataInUnitModel aggro)
+            {
+                _aggroSource = aggro;
+            }
+
+            public override bool AllowTargetChanging(BattleUnitModel attacker, int myCardSlotIdx)
+            {
+                if (myCardSlotIdx == _aggroSource.targetSlotOrder)
+                {
+                    return false;
+                }
+                return base.AllowTargetChanging(attacker, myCardSlotIdx);
+            }
+        }
+
+        private class BattleUnitBuf_forceAggro : BattleUnitBuf
+        {
+
+            readonly BattlePlayingCardDataInUnitModel _aggroSource;
+            readonly FieldInfo _speedDiceField = typeof(LOR_BattleUnit_UI.SpeedDiceUI).GetField("_speedDiceIndex", BindingFlags.NonPublic | BindingFlags.Instance);
+            public override bool Hide => true;
+            public BattleUnitBuf_forceAggro(BattlePlayingCardDataInUnitModel aggro)
+            {
+                _aggroSource = aggro;
+            }
+
+            public override List<BattleUnitModel> GetFixedTarget()
+            {
+                var selectedDiceIndex = (int) _speedDiceField.GetValue(Singleton<LOR_BattleUnit_UI.SpeedDiceUI>.Instance);
+                Debug.Log("GetFixedTarget() selectedDiceIndex: " + selectedDiceIndex);
+                if (selectedDiceIndex == _aggroSource.targetSlotOrder)
+                {
+                    return new List<BattleUnitModel> { _aggroSource.owner };
+                }
+                return base.GetFixedTarget();
+            }
+
+            public override bool IsTargetable()
+            {
+                var selectedDiceIndex = (int)_speedDiceField.GetValue(Singleton<LOR_BattleUnit_UI.SpeedDiceUI>.Instance);
+                Debug.Log("IsTargetable() selectedDiceIndex: " + selectedDiceIndex);
+                return selectedDiceIndex == _aggroSource.targetSlotOrder || base.IsTargetable();
+            }
+
+            //public override bool DirectAttack()
+            //{
+            //    var aggroCard = _owner.cardSlotDetail.cardAry[_aggroSource.targetSlotOrder];
+            //    if (aggroCard != null)
+            //    {
+            //        aggroCard.target = _aggroSource.owner;
+            //        aggroCard.targetSlotOrder = _aggroSource.slotOrder;
+            //    }
+            //    return base.DirectAttack();
+            //}
+
+            public override BattleUnitModel ChangeAttackTarget(BattleDiceCardModel card, int currentSlot)
+            {
+                if (currentSlot == _aggroSource.targetSlotOrder)
+                {
+                    return _aggroSource.owner;
+                }
+                return base.ChangeAttackTarget(card, currentSlot);
+            }
+
+            public override int ChangeTargetSlot(BattleDiceCardModel card, BattleUnitModel target, int currentSlot, int targetSlot, bool teamkill)
+            {
+                if (currentSlot == _aggroSource.targetSlotOrder)
+                {
+                    return _aggroSource.slotOrder;
+                }
+                return base.ChangeTargetSlot(card, target, currentSlot, targetSlot, teamkill);
+            }
+
+            public override void OnEndBattlePhase()
+            {
+                Destroy();
+            }
         }
     }
 
