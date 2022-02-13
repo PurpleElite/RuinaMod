@@ -429,6 +429,7 @@ namespace CustomDLLs
 
                 _limitTargetsPassive = new PassiveAbility_onlyAggroDiceTargetable(_aggroSource);
                 _aggroSource.owner.passiveDetail.AddPassive(_limitTargetsPassive);
+                _aggroSource.owner.passiveDetail.OnCreated();
             }
 
 
@@ -536,6 +537,7 @@ namespace CustomDLLs
             private class PassiveAbility_onlyAggroDiceTargetable : PassiveAbilityBase
             {
                 readonly List<(SpeedDiceUI Die, int OriginalIndex)> _blockedDiceTuples;
+                readonly List<(SpeedDiceUI Die, int OriginalIndex)> _targetableDiceTuples;
                 readonly BattlePlayingCardDataInUnitModel _aggroSource;
                 readonly FieldInfo _indexField = typeof(SpeedDiceUI).GetField("_speedDiceIndex", BindingFlags.NonPublic | BindingFlags.Instance);
                 bool _doTheLast = false;
@@ -546,30 +548,20 @@ namespace CustomDLLs
                 {
                     _aggroSource = aggroSource;
                     _blockedDiceTuples = new List<(SpeedDiceUI Die, int OriginalIndex)>();
-                    owner.passiveDetail.OnCreated();
                 }
 
-                public void UpdateBlockedDice(IEnumerable<SpeedDiceUI> blockedDice)
+                public void UpdateDice(IEnumerable<SpeedDiceUI> blockedDice, IEnumerable<SpeedDiceUI> targetableDice)
                 {
                     _blockedDiceTuples.Clear();
                     _blockedDiceTuples.AddRange(blockedDice.Select(x => (x, (int)_indexField.GetValue(x))));
+                    _targetableDiceTuples.Clear();
+                    _blockedDiceTuples.AddRange(targetableDice.Select(x => (x, (int)_indexField.GetValue(x))));
                 }
 
                 public override bool IsTargetable(BattleUnitModel attacker)
                 {
-                    //if (attacker == _aggroSource.target
-                    //    && BattleManagerUI.Instance.selectedAllyDice?.OrderOfDice == _aggroSource.targetSlotOrder
-                    //    && new System.Diagnostics.StackTrace().GetFrames().Any(x => x?.GetMethod().Name == "CheckBlockDice"))
-                    //{
-                    //    foreach (var die in _blockedDiceTuples)
-                    //    {
-                    //        _indexField.SetValue(die, owner.view.speedDiceSetterUI.SpeedDicesCount - 1);
-                    //    }
-                    //    _doTheLast = true;
-                    //}
-                    //return base.IsTargetable(attacker);
                     var bool1 = SingletonBehavior<BattleManagerUI>.Instance.ui_unitCardsInHand.SelectedModel == _aggroSource.target;
-                    Debug.Log($"IsTargetable: attacker is {SingletonBehavior<BattleManagerUI>.Instance.ui_unitCardsInHand.SelectedModel.UnitData.unitData.name}, aggro target is {_aggroSource.target.UnitData.unitData.name}");
+                    Debug.Log($"IsTargetable: attacker is {SingletonBehavior<BattleManagerUI>.Instance.ui_unitCardsInHand.SelectedModel?.UnitData.unitData.name}, aggro target is {_aggroSource.target.UnitData.unitData.name}");
                     var bool2 = BattleManagerUI.Instance.selectedAllyDice?.OrderOfDice == _aggroSource.targetSlotOrder;
                     Debug.Log($"IsTargetable: targetSlotOrder is {BattleManagerUI.Instance.selectedAllyDice?.OrderOfDice}, aggro targetSlotOrder is {_aggroSource.targetSlotOrder}");
                     Debug.Log($"IsTargetable StackTrace: {new System.Diagnostics.StackTrace()}");
@@ -578,9 +570,14 @@ namespace CustomDLLs
                         && new System.Diagnostics.StackTrace().GetFrames().Any(x => x?.GetMethod().Name == "CheckBlockDice"))
                     {
                         Debug.Log("IsTargetable called by CheckBlockDice");
-                        foreach (var die in _blockedDiceTuples)
+                        //Force the blocked dice to trigger IsTargetable_theLast by temporarily setting their indices to the last one
+                        foreach (var (die, _) in _blockedDiceTuples)
                         {
                             _indexField.SetValue(die, owner.view.speedDiceSetterUI.SpeedDicesCount - 1);
+                        }
+                        foreach (var (die, _) in _targetableDiceTuples)
+                        {
+                            _indexField.SetValue(die, -1);
                         }
                         _doTheLast = true;
                     }
@@ -591,9 +588,10 @@ namespace CustomDLLs
                 {
                     if (_doTheLast)
                     {
-                        foreach (var tuple in _blockedDiceTuples)
+                        //Set the indices back to their original values 
+                        foreach (var (die, originalIndex) in _blockedDiceTuples.Concat(_targetableDiceTuples))
                         {
-                            _indexField.SetValue(tuple.Die, tuple.OriginalIndex);
+                            _indexField.SetValue(die, originalIndex);
                         }
                         _doTheLast = false;
                         return false;
