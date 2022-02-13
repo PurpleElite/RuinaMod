@@ -245,9 +245,10 @@ namespace CustomDLLs
     {
         public static string Desc = "Allies are knocked out instead of dying while this character is alive. Gain a unique card that revives an ally and weakens the user for the turn at the cost of a stack of The Bonds that Bind Us.";
         private const int _cardId = 13;
+        bool _cardAdded = false;
         public override void OnWaveStart()
         {
-            owner.allyCardDetail.AddNewCard(new LorId(ModData.WorkshopId, _cardId));
+            
             var allies = BattleObjectManager.instance.GetAliveList(owner.faction);
             allies.Remove(owner);
             foreach (var ally in allies)
@@ -256,7 +257,18 @@ namespace CustomDLLs
                 ally.passiveDetail.AddPassive(new PassiveAbility_no_clash_allies(_cardId));
             }
         }
-
+        public override void OnRoundStart()
+        {
+            var allies = BattleObjectManager.instance.GetFriendlyAllList(owner.faction);
+            if (allies.Any(x => x.IsKnockout()))
+            {
+                if (!_cardAdded)
+                {
+                    owner.allyCardDetail.AddNewCard(new LorId(ModData.WorkshopId, _cardId));
+                    _cardAdded = true;
+                }
+            }
+        }
         public override void OnDie()
         {
             var allies = BattleObjectManager.instance.GetFriendlyAllList(owner.faction);
