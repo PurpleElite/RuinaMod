@@ -470,10 +470,9 @@ namespace CustomDLLs
         //Linus prioritizes targets based on which ones have unstable entropy, followed by which one has the most erosion 
         public override BattleUnitModel ChangeAttackTarget(BattleDiceCardModel card, int idx)
         {
-            var potentialTargets = BattleObjectManager.instance.GetAliveList(owner.faction == Faction.Player ? Faction.Enemy : Faction.Player);
-            //Shuffle first to avoid same target always being chosen when there are targets of equal priority
-            potentialTargets.OrderBy(x => UnityEngine.Random.value);
-            potentialTargets.OrderBy(x => x.bufListDetail.GetActivatedBuf(KeywordBuf.Decay).stack);
+            var potentialTargets = BattleObjectManager.instance.GetAliveList(owner.faction == Faction.Player ? Faction.Enemy : Faction.Player)
+                .OrderBy(x => UnityEngine.Random.value)
+                .OrderBy(x => x.bufListDetail.GetActivatedBuf(KeywordBuf.Decay)?.stack);
             var targetsWithEntropy = potentialTargets.Where(x => x.bufListDetail.GetActivatedBufList().Any(y => y is BattleUnitBuf_unstable_entropy buff && buff?.stack > 1));
             if (card.GetID() == new LorId(ModData.WorkshopId, 14))
             {

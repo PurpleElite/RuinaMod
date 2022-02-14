@@ -355,7 +355,7 @@ namespace CustomDLLs
     {
         public static string Desc = "The targeted dice becomes untargetable and is forced to clash with this page";
 
-        private BattleUnitBuf_forceClash _aggroBuf;
+        BattleUnitBuf_forceClash _aggroBuf;
         
         public override void OnApplyCard()
         {
@@ -377,17 +377,30 @@ namespace CustomDLLs
                 if (otherCard.target == card.target && otherCard.targetSlotOrder == card.targetSlotOrder)
                 {
                     Debug.Log("otherCard is targeting the same dice as PCT");
-                    var indices = Enumerable.Range(0, targetCardsDetail.cardAry.Count()).Where(x => x != card.targetSlotOrder).ToArray();
-                    otherCard.targetSlotOrder = RandomUtil.SelectOne(indices);
+                    var targetsOfThisScript = BattleObjectManager.instance.GetAliveList(owner.faction)
+                        .SelectMany(x => x.cardSlotDetail.cardAry)
+                        .Where(x => x.card.XmlData.Script == card.card.XmlData.Script)
+                        .Select(x => (x.target, x.targetSlotOrder));
+                    var potentialNewTargets = BattleObjectManager.instance.GetAliveList(owner.faction == Faction.Player ? Faction.Enemy : Faction.Player)
+                        .SelectMany(x => Enumerable.Range(0, x.view.speedDiceSetterUI.SpeedDicesCount).Select(y => (x, y)))
+                        .Except(targetsOfThisScript);
+                    var potentialNewSlotsOriginalTarget = potentialNewTargets.Where(x => x.Item1 == otherCard.target);
+                    if (potentialNewSlotsOriginalTarget.Any())
+                    {
+                        otherCard.targetSlotOrder = RandomUtil.SelectOne(potentialNewSlotsOriginalTarget.Select(x => x.Item2).ToArray());
+                    }
+                    else
+                    {
+                        var newTarget = RandomUtil.SelectOne(potentialNewTargets.ToArray());
+                        otherCard.target = newTarget.Item1;
+                        otherCard.targetSlotOrder = newTarget.Item2;
+                        Debug.Log("otherCard target changed to: " + otherCard.target.UnitData.unitData.name);
+                    }
                     Debug.Log("otherCard targetSlotOrder changed to: " + otherCard.targetSlotOrder);
                 }
             }
             _aggroBuf = new BattleUnitBuf_forceClash(card);
             card.target.bufListDetail.AddBuf(_aggroBuf);
-            //TODO: This doesn't hold or truly make the die untargetable.
-            card.target.view.speedDiceSetterUI.GetSpeedDiceByIndex(card.targetSlotOrder).BlockDice(true, true);
-            //_aggroPassive = new PassiveAbility_forceAggro(card);
-            //target.owner.passiveDetail.AddPassive(_aggroPassive);
         }
 
         public override void OnReleaseCard()
@@ -410,6 +423,7 @@ namespace CustomDLLs
             readonly List<SpeedDiceUI> _blockedDice = new List<SpeedDiceUI>();
             readonly List<BattleUnitBuf_dont_target_die> _redirectBuffs = new List<BattleUnitBuf_dont_target_die>();
             PassiveAbility_onlyAggroDiceTargetable _limitTargetsPassive;
+            SpeedDiceUI _lastSelectedDie;
             public override bool Hide => true;
             public BattleUnitBuf_forceClash(BattlePlayingCardDataInUnitModel aggro)
             {
@@ -430,28 +444,33 @@ namespace CustomDLLs
                 _limitTargetsPassive = new PassiveAbility_onlyAggroDiceTargetable(_aggroSource);
                 _aggroSource.owner.passiveDetail.AddPassive(_limitTargetsPassive);
                 _aggroSource.owner.passiveDetail.OnCreated();
+                _aggroSource.target.view.speedDiceSetterUI.GetSpeedDiceByIndex(_aggroSource.targetSlotOrder).BlockDice(true, true);
             }
-
 
             public override List<BattleUnitModel> GetFixedTarget()
             {
-                //var selectedDiceIndex = (int) _speedDiceField.GetValue(Singleton<LOR_BattleUnit_UI.SpeedDiceUI>.Instance);
-                var selectedDiceIndex = BattleManagerUI.Instance.selectedAllyDice?.OrderOfDice;
-                Debug.Log("GetFixedTarget() selectedDiceIndex: " + selectedDiceIndex);
-                if (selectedDiceIndex == _aggroSource.targetSlotOrder)
+                _aggroSource.target.view.speedDiceSetterUI.GetSpeedDiceByIndex(_aggroSource.targetSlotOrder).BlockDice(true, true);
+
+                var selectedDie = BattleManagerUI.Instance.selectedAllyDice;
+                _lastSelectedDie = selectedDie ?? _lastSelectedDie;
+                var selectedDieIndex = _lastSelectedDie?.OrderOfDice;
+                Debug.Log("GetFixedTarget() selectedDiceIndex: " + selectedDieIndex);
+                if (selectedDieIndex == _aggroSource.targetSlotOrder)
                 {
                     var speedDicesField = typeof(SpeedDiceSetter).GetField("_speedDices", BindingFlags.NonPublic | BindingFlags.Instance);
                     var targetDice = ((List<SpeedDiceUI>)speedDicesField.GetValue(_aggroSource.owner.view.speedDiceSetterUI));
                     Debug.Log(targetDice != null ? "targetDice acquired" : "failed to acquire targetDice");
+                    _blockedDice.Clear();
                     foreach (var die in targetDice.Where(x => x.OrderOfDice != _aggroSource.slotOrder))
                     {
                         die.BlockDice(true, true);
-                        die.enabled = false;
+                        //die.enabled = false;
                         _blockedDice.Add(die);
                     }
-                    _limitTargetsPassive.UpdateBlockedDice(_blockedDice);
+                    _limitTargetsPassive.UpdateDice(_blockedDice, new []{ targetDice.FirstOrDefault(x => x.OrderOfDice == _aggroSource.slotOrder) });
                     return new List<BattleUnitModel> { _aggroSource.owner };
                 }
+                // Set the dice to their natural state
                 foreach (var die in _blockedDice)
                 {
                     die.SetBlockDice();
@@ -511,7 +530,7 @@ namespace CustomDLLs
             {
                 public override bool Hide => true;
 
-                BattleUnitModel _target;
+                readonly BattleUnitModel _target;
                 readonly int _targetSlot;
                 readonly int _originSlot;
 
@@ -548,6 +567,7 @@ namespace CustomDLLs
                 {
                     _aggroSource = aggroSource;
                     _blockedDiceTuples = new List<(SpeedDiceUI Die, int OriginalIndex)>();
+                    _targetableDiceTuples = new List<(SpeedDiceUI Die, int OriginalIndex)>();
                 }
 
                 public void UpdateDice(IEnumerable<SpeedDiceUI> blockedDice, IEnumerable<SpeedDiceUI> targetableDice)
@@ -555,31 +575,34 @@ namespace CustomDLLs
                     _blockedDiceTuples.Clear();
                     _blockedDiceTuples.AddRange(blockedDice.Select(x => (x, (int)_indexField.GetValue(x))));
                     _targetableDiceTuples.Clear();
-                    _blockedDiceTuples.AddRange(targetableDice.Select(x => (x, (int)_indexField.GetValue(x))));
+                    _targetableDiceTuples.AddRange(targetableDice.Select(x => (x, (int)_indexField.GetValue(x))));
                 }
 
                 public override bool IsTargetable(BattleUnitModel attacker)
                 {
-                    var bool1 = SingletonBehavior<BattleManagerUI>.Instance.ui_unitCardsInHand.SelectedModel == _aggroSource.target;
-                    Debug.Log($"IsTargetable: attacker is {SingletonBehavior<BattleManagerUI>.Instance.ui_unitCardsInHand.SelectedModel?.UnitData.unitData.name}, aggro target is {_aggroSource.target.UnitData.unitData.name}");
-                    var bool2 = BattleManagerUI.Instance.selectedAllyDice?.OrderOfDice == _aggroSource.targetSlotOrder;
-                    Debug.Log($"IsTargetable: targetSlotOrder is {BattleManagerUI.Instance.selectedAllyDice?.OrderOfDice}, aggro targetSlotOrder is {_aggroSource.targetSlotOrder}");
-                    Debug.Log($"IsTargetable StackTrace: {new System.Diagnostics.StackTrace()}");
-                    if (SingletonBehavior<BattleManagerUI>.Instance.ui_unitCardsInHand.SelectedModel == _aggroSource.target
-                        && BattleManagerUI.Instance.selectedAllyDice?.OrderOfDice == _aggroSource.targetSlotOrder
-                        && new System.Diagnostics.StackTrace().GetFrames().Any(x => x?.GetMethod().Name == "CheckBlockDice"))
+                    if (_aggroSource.owner.view.speedDiceSetterUI.SpeedDicesCount > 1)
                     {
-                        Debug.Log("IsTargetable called by CheckBlockDice");
-                        //Force the blocked dice to trigger IsTargetable_theLast by temporarily setting their indices to the last one
-                        foreach (var (die, _) in _blockedDiceTuples)
+                        var bool1 = SingletonBehavior<BattleManagerUI>.Instance.ui_unitCardsInHand.SelectedModel == _aggroSource.target;
+                        Debug.Log($"IsTargetable: attacker is {SingletonBehavior<BattleManagerUI>.Instance.ui_unitCardsInHand.SelectedModel?.UnitData.unitData.name}, aggro target is {_aggroSource.target.UnitData.unitData.name}");
+                        var bool2 = BattleManagerUI.Instance.selectedAllyDice?.OrderOfDice == _aggroSource.targetSlotOrder;
+                        Debug.Log($"IsTargetable: targetSlotOrder is {BattleManagerUI.Instance.selectedAllyDice?.OrderOfDice}, aggro targetSlotOrder is {_aggroSource.targetSlotOrder}");
+                        //Debug.Log($"IsTargetable StackTrace: {new System.Diagnostics.StackTrace()}");
+                        if (SingletonBehavior<BattleManagerUI>.Instance.ui_unitCardsInHand.SelectedModel == _aggroSource.target
+                            && BattleManagerUI.Instance.selectedAllyDice?.OrderOfDice == _aggroSource.targetSlotOrder
+                            && new System.Diagnostics.StackTrace().GetFrames().Any(x => x?.GetMethod().Name == "CheckBlockDice"))
                         {
-                            _indexField.SetValue(die, owner.view.speedDiceSetterUI.SpeedDicesCount - 1);
+                            Debug.Log("IsTargetable called by CheckBlockDice");
+                            //Force the blocked dice to trigger IsTargetable_theLast by temporarily setting their indices to the last one
+                            foreach (var (die, _) in _blockedDiceTuples)
+                            {
+                                _indexField.SetValue(die, owner.view.speedDiceSetterUI.SpeedDicesCount - 1);
+                            }
+                            foreach (var (die, _) in _targetableDiceTuples)
+                            {
+                                _indexField.SetValue(die, 0);
+                            }
+                            _doTheLast = true;
                         }
-                        foreach (var (die, _) in _targetableDiceTuples)
-                        {
-                            _indexField.SetValue(die, -1);
-                        }
-                        _doTheLast = true;
                     }
                     return base.IsTargetable(attacker);
                 }
