@@ -57,14 +57,14 @@ namespace CustomDLLs
 			if (self.result == Result.Win && self.data.actionType == ActionType.Atk && !opponent.behaviourResultData.IsFarAtk())
 			{
 				var finalAttack = self.behaviourResultData.resultDiceValue == self.behaviourResultData.resultDiceMin;
-                var movingAction = new RencounterManager.MovingAction(NextAction(), _firstAttack ? CharMoveState.MoveForward : CharMoveState.Stop, 0f, false, 0.1f);
+                var movingAction = new RencounterManager.MovingAction(NextAction(), _firstAttack ? CharMoveState.MoveForward : CharMoveState.Stop, 0f, false, 0.2f);
 				movingAction.SetEffectTiming(EffectTiming.PRE, EffectTiming.NONE, EffectTiming.NONE);
 				moveActions.Add(movingAction);
-				var movingAction2 = new RencounterManager.MovingAction(NextAction(), CharMoveState.Stop, 0f, false, finalAttack ? 1f : 0.1f);
+				var movingAction2 = new RencounterManager.MovingAction(NextAction(), CharMoveState.Stop, 3f, false, finalAttack ? 1f : 0.2f);
 				movingAction2.SetEffectTiming(EffectTiming.PRE, EffectTiming.PRE, EffectTiming.PRE);
 				moveActions.Add(movingAction2);
-				opponent.infoList.Add(new RencounterManager.MovingAction(ActionDetail.Damaged, CharMoveState.Stop, 0f, false, 0.1f));
-				opponent.infoList.Add(new RencounterManager.MovingAction(ActionDetail.Damaged, finalAttack ? CharMoveState.Knockback : CharMoveState.Stop, 3f, false, finalAttack ? 1f : 0.1f));
+				opponent.infoList.Add(new RencounterManager.MovingAction(ActionDetail.Damaged, CharMoveState.Stop, 0f, false, 0.2f));
+				opponent.infoList.Add(new RencounterManager.MovingAction(ActionDetail.Damaged, finalAttack ? CharMoveState.Knockback : CharMoveState.Stop, 3f, false, finalAttack ? 1f : 0.2f));
 				_movable = finalAttack;
 				_firstAttack = false;
 			}
