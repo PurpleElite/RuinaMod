@@ -374,6 +374,7 @@ namespace CustomDLLs
             {
                 //OnApplyCalled = false;
                 onApplyCardCalledFlag.Destroy();
+                unit.bufListDetail.RemoveBuf(onApplyCardCalledFlag);
                 var card = unit.cardSlotDetail.cardAry.FirstOrDefault(x => x.card == self);
                 if (card == null)
                 {
@@ -390,10 +391,10 @@ namespace CustomDLLs
             
                 foreach (var otherCard in BattleObjectManager.instance.GetAliveList().SelectMany(x => x.cardSlotDetail.cardAry).Where(x => x != null && x != card))
                 {
-                    Debug.Log("PCT OnApplyCard() otherCardunit: " + otherCard.owner.UnitData.unitData.name);
-                    Debug.Log("otherCardName: " + otherCard.card.GetName());
-                    Debug.Log("otherCardTarget: " + otherCard.target.UnitData.unitData.name);
-                    Debug.Log("otherCardTargetSlot: " + otherCard.targetSlotOrder);
+                    //Debug.Log("PCT OnApplyCard() otherCardunit: " + otherCard.owner.UnitData.unitData.name);
+                    //Debug.Log("otherCardName: " + otherCard.card.GetName());
+                    //Debug.Log("otherCardTarget: " + otherCard.target.UnitData.unitData.name);
+                    //Debug.Log("otherCardTargetSlot: " + otherCard.targetSlotOrder);
                     if (otherCard.target == card.target && otherCard.targetSlotOrder == card.targetSlotOrder)
                     {
                         Debug.Log("otherCard is targeting the same dice as PCT");
@@ -427,7 +428,7 @@ namespace CustomDLLs
         public override void OnReleaseCard()
         {
             //_aggroBuf is probably not going to carry over from the other function
-            BattleUnitBuf_forceClash aggroBuf = (BattleUnitBuf_forceClash) owner.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_forceClash buf && buf.AggroSource == card);
+            var aggroBuf = owner.bufListDetail.GetActivatedBufList().OfType<BattleUnitBuf_forceClash>().FirstOrDefault(x => x.AggroSource == card);
             aggroBuf?.RemoveBufsAndPassive();
             aggroBuf?.Destroy();
         }
@@ -487,7 +488,7 @@ namespace CustomDLLs
                 var selectedDie = BattleManagerUI.Instance.selectedAllyDice;
                 _lastSelectedDie = selectedDie ?? _lastSelectedDie;
                 var selectedDieIndex = _lastSelectedDie?.OrderOfDice;
-                Debug.Log("GetFixedTarget() selectedDiceIndex: " + selectedDieIndex);
+                //Debug.Log("GetFixedTarget() selectedDiceIndex: " + selectedDieIndex);
                 if (selectedDieIndex == AggroSource.targetSlotOrder)
                 {
                     //var speedDicesField = typeof(SpeedDiceSetter).GetField("_speedDices", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -625,9 +626,6 @@ namespace CustomDLLs
                 {
                     if (_diceOwner.view.speedDiceSetterUI.SpeedDicesCount > 1)
                     {
-                        Debug.Log($"IsTargetable: attacker is {SingletonBehavior<BattleManagerUI>.Instance.ui_unitCardsInHand.SelectedModel?.UnitData.unitData.name}, aggro target is {_specificEnemyToBlock.UnitData.unitData.name}");
-                        Debug.Log($"IsTargetable: targetSlotOrder is {BattleManagerUI.Instance.selectedAllyDice?.OrderOfDice}, aggro targetSlotOrder is {_specificEnemySlotToBlock}");
-                        //Debug.Log($"IsTargetable StackTrace: {new System.Diagnostics.StackTrace()}");
                         if ((_specificEnemyToBlock == null || SingletonBehavior<BattleManagerUI>.Instance.ui_unitCardsInHand.SelectedModel == _specificEnemyToBlock)
                             && ((_specificEnemySlotToBlock == -1) || BattleManagerUI.Instance.selectedAllyDice?.OrderOfDice == _specificEnemySlotToBlock)
                             && new System.Diagnostics.StackTrace().GetFrames().Any(x => x?.GetMethod().Name == "CheckBlockDice"))
