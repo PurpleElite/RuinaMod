@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace CustomDLLs
 {
-    public class PassiveAbility_radiant_perseverance : PassiveAbilityBase
+    public class PassiveAbility_seraph_radiant_perseverance : PassiveAbilityBase
     {
         public static string Desc = "Cannot be damaged unless staggered and can still act while staggered. Will not die until the end of the round after taking damage that would otherwise be fatal. Gain 3 strength and endurance while staggered and even more when at death's door";
 
@@ -32,7 +32,7 @@ namespace CustomDLLs
             //TODO: Remove this before publishing
             foreach (var unit in BattleObjectManager.instance.GetAliveList())
             {
-                unit.passiveDetail.AddPassive(new PassiveAbility_analytics_data());
+                unit.passiveDetail.AddPassive(new PassiveAbility_seraph_analytics_data());
             }
             _breakState = BreakState.noBreak;
             _die = false;
@@ -216,7 +216,7 @@ namespace CustomDLLs
         }
     }
 
-    public class PassiveAbility_second_wind : PassiveAbilityBase
+    public class PassiveAbility_seraph_second_wind : PassiveAbilityBase
     {
         public static string Desc = "Restore all Light at end of turn after being Staggered";
 
@@ -241,7 +241,7 @@ namespace CustomDLLs
         }
     }
 
-    public class PassiveAbility_together_to_the_end : PassiveAbilityBase
+    public class PassiveAbility_seraph_together_to_the_end : PassiveAbilityBase
     {
         public static string Desc = "Allies are knocked out instead of dying while this character is alive. Gain a unique card that revives an ally and weakens the user for the turn at the cost of a stack of The Bonds that Bind Us.";
         private const int _cardId = 13;
@@ -254,7 +254,7 @@ namespace CustomDLLs
             foreach (var ally in allies)
             {
                 ally.SetKnockoutInsteadOfDeath(true);
-                ally.passiveDetail.AddPassive(new PassiveAbility_no_clash_allies(_cardId));
+                ally.passiveDetail.AddPassive(new PassiveAbility_seraph_no_clash_allies(_cardId));
             }
         }
         public override void OnRoundStart()
@@ -296,7 +296,7 @@ namespace CustomDLLs
         }
     }
 
-    public class PassiveAbility_bonds_that_bind_us_defend : PassiveAbility_bonds_base
+    public class PassiveAbility_seraph_bonds_that_bind_us_defend : PassiveAbility_seraph_bonds_base
     {
         public override int CardId { get => 9; }
 
@@ -312,7 +312,7 @@ namespace CustomDLLs
         }
     }
 
-    public class PassiveAbility_bonds_that_bind_us_restore : PassiveAbility_bonds_base
+    public class PassiveAbility_seraph_bonds_that_bind_us_restore : PassiveAbility_seraph_bonds_base
     {
         public override int CardId { get => 10; }
         public override void RoundStartEffect()
@@ -334,7 +334,7 @@ namespace CustomDLLs
         }
     }
 
-    public class PassiveAbility_bonds_that_bind_us_drive : PassiveAbility_bonds_base
+    public class PassiveAbility_seraph_bonds_that_bind_us_drive : PassiveAbility_seraph_bonds_base
     {
         public override int CardId { get => 11; }
 
@@ -348,7 +348,7 @@ namespace CustomDLLs
         }
     }
 
-    public class PassiveAbility_bonds_base : PassiveAbilityBase
+    public class PassiveAbility_seraph_bonds_base : PassiveAbilityBase
     {
         public static string Desc = "At the start of the act gain one stack of The Bonds that Bind Us and add a unique combat page to hand.";
         public virtual int CardId { get => 0; }
@@ -357,12 +357,12 @@ namespace CustomDLLs
 
         public override void OnWaveStart()
         {
-            owner.bufListDetail.AddBuf(new BattleUnitBuf_bonds());
+            owner.bufListDetail.AddBuf(new BattleUnitBuf_seraph_bonds());
             owner.allyCardDetail.AddNewCard(new LorId(ModData.WorkshopId, CardId));
             var allies = BattleObjectManager.instance.GetAliveList(owner.faction);
             foreach (var ally in allies)
             {
-                ally.passiveDetail.AddPassive(new PassiveAbility_no_clash_allies(CardId));
+                ally.passiveDetail.AddPassive(new PassiveAbility_seraph_no_clash_allies(CardId));
             }
         }
 
@@ -370,7 +370,7 @@ namespace CustomDLLs
         {
             if (card.GetID() == new LorId(ModData.WorkshopId, CardId))
             {
-                var bondsBuff = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_bonds);
+                var bondsBuff = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_seraph_bonds);
                 if (bondsBuff?.stack > DesiredStacks)
                 {
                     Debug.Log("Targeting enemies with bond card");
@@ -389,7 +389,7 @@ namespace CustomDLLs
             if (card.GetID() == new LorId(ModData.WorkshopId, CardId))
             {
                 var allies = BattleObjectManager.instance.GetAliveList();
-                var bondsBuff = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_bonds);
+                var bondsBuff = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_seraph_bonds);
                 if (allies.Count <= 1 && bondsBuff?.stack <= DesiredStacks)
                 {
                     return -50;
@@ -404,7 +404,7 @@ namespace CustomDLLs
 
         public override void OnRoundStart()
         {
-            var bondsBuff = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_bonds);
+            var bondsBuff = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_seraph_bonds);
             if (bondsBuff != null && bondsBuff.stack > 0)
             {
                 RoundStartEffect();
@@ -414,7 +414,7 @@ namespace CustomDLLs
         public virtual void RoundStartEffect() { }
     }
 
-    public class PassiveAbility_fueled_by_light : PassiveAbilityBase
+    public class PassiveAbility_seraph_fueled_by_light : PassiveAbilityBase
     {
         public override void OnRoundStart()
         {
@@ -426,7 +426,7 @@ namespace CustomDLLs
         }
     }
 
-    public class PassiveAbility_find_the_opening : PassiveAbilityBase
+    public class PassiveAbility_seraph_find_the_opening : PassiveAbilityBase
     {
         private int _count;
         public override void OnRoundStart()
@@ -443,7 +443,7 @@ namespace CustomDLLs
         }
     }
 
-    public class PassiveAbility_the_nymane_key : PassiveAbilityBase
+    public class PassiveAbility_seraph_the_nymane_key : PassiveAbilityBase
     {
         public override void OnSucceedAttack(BattleDiceBehavior behavior)
         {
@@ -486,7 +486,7 @@ namespace CustomDLLs
         }
     }
 
-    public class PassiveAbility_keep_them_busy : PassiveAbilityBase
+    public class PassiveAbility_seraph_keep_them_busy : PassiveAbilityBase
     {
         private int _count;
 
@@ -509,7 +509,7 @@ namespace CustomDLLs
         }
     }
 
-    public class PassiveAbility_command_the_wind : PassiveAbilityBase
+    public class PassiveAbility_seraph_command_the_wind : PassiveAbilityBase
     {
         public override void OnWaveStart()
         {
@@ -538,7 +538,7 @@ namespace CustomDLLs
         }
     }
 
-    public class PassiveAbility_sting_like_a_bee : PassiveAbilityBase
+    public class PassiveAbility_seraph_sting_like_a_bee : PassiveAbilityBase
     {
         public override void OnWinParrying(BattleDiceBehavior behavior)
         {
@@ -566,7 +566,7 @@ namespace CustomDLLs
         }
     }
 
-    public class PassiveAbility_twelve_fixers_evade : PassiveAbilityBase
+    public class PassiveAbility_seraph_twelve_fixers_evade : PassiveAbilityBase
     {
         public override void BeforeRollDice(BattleDiceBehavior behavior)
         {
@@ -583,7 +583,7 @@ namespace CustomDLLs
         }
     }
 
-    public class PassiveAbility_retaliateJo : PassiveAbilityBase
+    public class PassiveAbility_seraph_retaliateJo : PassiveAbilityBase
     {
         public override void OnStartBattle()
         {
@@ -601,10 +601,10 @@ namespace CustomDLLs
         }
     }
 
-    public class PassiveAbility_no_clash_allies : PassiveAbilityBase
+    public class PassiveAbility_seraph_no_clash_allies : PassiveAbilityBase
     {
         private readonly int _cardId = -1;
-        public PassiveAbility_no_clash_allies(int cardId = -1)
+        public PassiveAbility_seraph_no_clash_allies(int cardId = -1)
         {
             _cardId = cardId;
         }
@@ -630,7 +630,7 @@ namespace CustomDLLs
         public override bool isHide => true;
     }
 
-    public class PassiveAbility_analytics_data : PassiveAbilityBase
+    public class PassiveAbility_seraph_analytics_data : PassiveAbilityBase
     {
         public int DamageTaken = 0;
         public int DamageTakenFromAtacks = 0;

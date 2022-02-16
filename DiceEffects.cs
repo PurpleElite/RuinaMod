@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace CustomDLLs
 {
-    public class DiceCardAbility_multi : DiceCardAbilityBase
+    public class DiceCardAbility_seraph_multi : DiceCardAbilityBase
     {
         public static string Desc = "This die is rolled up to 4 times at the cost of one light per extra roll.";
 
@@ -21,7 +21,7 @@ namespace CustomDLLs
         }
     }
 
-    public class DiceCardAbility_execute : DiceCardAbilityBase
+    public class DiceCardAbility_seraph_execute : DiceCardAbilityBase
     {
         public static string Desc = "[On Hit] If target is Staggered deal 60 damage";
 
@@ -62,7 +62,7 @@ namespace CustomDLLs
         }
     }
 
-    public class DiceCardAbility_entropy : DiceCardAbilityBase
+    public class DiceCardAbility_seraph_entropy : DiceCardAbilityBase
     {
         public static string Desc = "[On Hit] Inflict Unstable Entropy";
 
@@ -84,7 +84,7 @@ namespace CustomDLLs
         } 
     }
 
-    public class DiceCardAbility_powerDown3targetAtk : DiceCardAbilityBase
+    public class DiceCardAbility_seraph_powerDown3targetAtk : DiceCardAbilityBase
     {
         public static string Desc = "Reduce Power of target's current Offensive die by 3";
 
@@ -104,7 +104,7 @@ namespace CustomDLLs
         }
     }
 
-    public class DiceCardAbility_borrowed_time_recycle : DiceCardAbilityBase
+    public class DiceCardAbility_seraph_borrowed_time_recycle : DiceCardAbilityBase
     {
         public static string Desc = "[On Hit] Recycle this die unless it rolls the minimum value (Up to 4 times)";
         public override void OnSucceedAttack()
@@ -133,7 +133,7 @@ namespace CustomDLLs
 
         public override void BeforeRollDice()
         {
-            var stacks = owner.bufListDetail.GetActivatedBufList().OfType<BattleUnitBuf_bonds>().Select(x => x.stack).Sum();
+            var stacks = owner.bufListDetail.GetActivatedBufList().OfType<BattleUnitBuf_seraph_bonds>().Select(x => x.stack).Sum();
             behavior.ApplyDiceStatBonus(new DiceStatBonus { power = Math.Min(stacks, 4) });
         }
     }

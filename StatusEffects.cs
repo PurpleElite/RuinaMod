@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace CustomDLLs
 {
-    public class BattleUnitBuf_bonds : BattleUnitBuf
+    public class BattleUnitBuf_seraph_bonds : BattleUnitBuf
     {
         private const string buffName = "BindBonds";
         protected override string keywordId

@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace CustomDLLs
 {
-    public class DiceCardSelfAbility_extra_clash_dice : DiceCardSelfAbilityBase
+    public class DiceCardSelfAbility_seraph_extra_clash_dice : DiceCardSelfAbilityBase
     {
         public static string Desc = "[On Clash] Inflict 2 Fragile and add two Slash dice (Roll: 5-8) to the dice queue";
         public override string[] Keywords =>  new string[] { "Vulnerable_Keyword" };
@@ -42,7 +42,7 @@ namespace CustomDLLs
         }
     }
 
-    public class DiceCardSelfAbility_together_to_the_end : DiceCardSelfAbilityBase
+    public class DiceCardSelfAbility_seraph_together_to_the_end : DiceCardSelfAbilityBase
     {
         public static string Desc = "[On Combat Start] Spend 1 stack of The Bonds that Bind Us and inflict 2 Feeble and Disarm on self. Reduce max Stagger Resist by 20% (Up to 40%) [End of Scene] Revive all Incapacitated allies at half health and max stagger resist.";
         public override string[] Keywords => new string[] { "Weak_Keyword", "Disarm_Keyword" };
@@ -53,32 +53,32 @@ namespace CustomDLLs
         public override bool OnChooseCard(BattleUnitModel owner)
         {
             var allyKOd = BattleObjectManager.instance.GetFriendlyAllList(owner.faction).Any(x => x.IsKnockout());
-            var hasBonds = owner.bufListDetail.GetActivatedBufList().Any(x => x is BattleUnitBuf_bonds bondBuff && bondBuff.stack > 0);
+            var hasBonds = owner.bufListDetail.GetActivatedBufList().Any(x => x is BattleUnitBuf_seraph_bonds bondBuff && bondBuff.stack > 0);
             return allyKOd && hasBonds;
         }
 
         public override void OnStartBattle()
         {
-            var bondsBuff = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_bonds);
+            var bondsBuff = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_seraph_bonds);
             if (bondsBuff?.stack > 0)
             {
-                owner.bufListDetail.AddBuf(new BattleUnitBuf_revive_all_round_end());
+                owner.bufListDetail.AddBuf(new BattleUnitBuf_seraph_revive_all_round_end());
                 bondsBuff.stack--;
                 owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Weak, 2);
                 owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Disarm, 2);
 
-                BattleUnitBuf activatedBuf = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_reduce_max_bp);
+                BattleUnitBuf activatedBuf = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_seraph_reduce_max_bp);
                 if (activatedBuf != null)
                 {
                     activatedBuf.stack++;
                 }
                 else
                 {
-                    owner.bufListDetail.AddBuf(new BattleUnitBuf_reduce_max_bp());
+                    owner.bufListDetail.AddBuf(new BattleUnitBuf_seraph_reduce_max_bp());
                 }
             }
         }
-        class BattleUnitBuf_reduce_max_bp : BattleUnitBuf
+        class BattleUnitBuf_seraph_reduce_max_bp : BattleUnitBuf
         {
             
             public override StatBonus GetStatBonus()
@@ -90,7 +90,7 @@ namespace CustomDLLs
             }
         }
 
-        class BattleUnitBuf_revive_all_round_end : BattleUnitBuf
+        class BattleUnitBuf_seraph_revive_all_round_end : BattleUnitBuf
         {
             public override bool Hide => true;
             public override void OnRoundEnd()
@@ -112,7 +112,7 @@ namespace CustomDLLs
         }
     }
 
-    public class DiceCardSelfAbility_bonds_base : DiceCardSelfAbilityBase
+    public class DiceCardSelfAbility_seraph_bonds_base : DiceCardSelfAbilityBase
     {
         public static string Desc = "[On Combat Start] If target is an ally, give and gain 1 stack of The Bonds That Bind Us.";
         public override void OnStartBattle()
@@ -121,22 +121,22 @@ namespace CustomDLLs
             {
                 return;
             }
-            var bondsBuff = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_bonds);
+            var bondsBuff = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_seraph_bonds);
             if (card.target.faction == owner.faction)
             {
                 Debug.Log("bondsBuff targeting ally");
                 if (bondsBuff == null)
                 {
-                    owner.bufListDetail.AddBuf(new BattleUnitBuf_bonds());
+                    owner.bufListDetail.AddBuf(new BattleUnitBuf_seraph_bonds());
                 }
                 else
                 {
                     bondsBuff.stack++;
                 }
-                var targetBondsBuff = card.target.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_bonds);
+                var targetBondsBuff = card.target.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_seraph_bonds);
                 if (targetBondsBuff == null || targetBondsBuff.IsDestroyed())
                 {
-                    card.target.bufListDetail.AddBuf(new BattleUnitBuf_bonds());
+                    card.target.bufListDetail.AddBuf(new BattleUnitBuf_seraph_bonds());
                 }
                 else
                 {
@@ -170,9 +170,9 @@ namespace CustomDLLs
         }
     }
 
-    public class DiceCardSelfAbility_bonds_protection : DiceCardSelfAbility_bonds_base
+    public class DiceCardSelfAbility_seraph_bonds_protection : DiceCardSelfAbility_seraph_bonds_base
     {
-        public static new string Desc = DiceCardSelfAbility_bonds_base.Desc + " If target is an enemy, spend 1 stack of The Bonds That Bind Us to redirect all target's cards to the dice with this card instead.";
+        public static new string Desc = DiceCardSelfAbility_seraph_bonds_base.Desc + " If target is an enemy, spend 1 stack of The Bonds That Bind Us to redirect all target's cards to the dice with this card instead.";
 
         protected override void TargetEnemy(BattleUnitBuf bondsBuff)
         {
@@ -189,9 +189,9 @@ namespace CustomDLLs
         }
     }
 
-    public class DiceCardSelfAbility_bonds_drive : DiceCardSelfAbility_bonds_base
+    public class DiceCardSelfAbility_seraph_bonds_drive : DiceCardSelfAbility_seraph_bonds_base
     {
-        public static new string Desc = DiceCardSelfAbility_bonds_base.Desc + " If target is an enemy, spend 1 stack of The Bonds That Bind Us to turn this into a Mass-Individual page.";
+        public static new string Desc = DiceCardSelfAbility_seraph_bonds_base.Desc + " If target is an enemy, spend 1 stack of The Bonds That Bind Us to turn this into a Mass-Individual page.";
         private BattleDiceCardModel originalCard;
         protected override void TargetEnemy(BattleUnitBuf bondsBuff)
         {
@@ -247,9 +247,9 @@ namespace CustomDLLs
         }
     }
 
-    public class DiceCardSelfAbility_bonds_restore : DiceCardSelfAbility_bonds_base
+    public class DiceCardSelfAbility_seraph_bonds_restore : DiceCardSelfAbility_seraph_bonds_base
     {
-        public static new string Desc = DiceCardSelfAbility_bonds_base.Desc + " If target is an enemy, spend 1 stack of The Bonds That Bind Us to grant 1 Light and 1 Positive Emotion Point to allies and purge their ailments";
+        public static new string Desc = DiceCardSelfAbility_seraph_bonds_base.Desc + " If target is an enemy, spend 1 stack of The Bonds That Bind Us to grant 1 Light and 1 Positive Emotion Point to allies and purge their ailments";
 
         protected override void TargetEnemy(BattleUnitBuf bondsBuff)
         {
@@ -272,7 +272,7 @@ namespace CustomDLLs
         }
     }
 
-    public class DiceCardSelfAbility_fastforward : DiceCardSelfAbilityBase
+    public class DiceCardSelfAbility_seraph_fastforward : DiceCardSelfAbilityBase
     {
         public static string Desc = "[On Use] Grant all allies 2 Haste next Scene and draw 1 page.";
         public override string[] Keywords => new string[] { "Quickness_Keyword" };
@@ -289,7 +289,7 @@ namespace CustomDLLs
         }
     }
 
-    public class DiceCardSelfAbility_eyes_on_me : DiceCardSelfAbilityBase
+    public class DiceCardSelfAbility_seraph_eyes_on_me : DiceCardSelfAbilityBase
     {
         public static string Desc = "[On Use] Draw 1 page. [On Clash] Change the dice on this page to evasion dice.";
 
@@ -312,7 +312,7 @@ namespace CustomDLLs
         }
     }
 
-    public class DiceCardSelfAbility_willpower : DiceCardSelfAbilityBase
+    public class DiceCardSelfAbility_seraph_willpower : DiceCardSelfAbilityBase
     {
         public static string Desc = "[On Use] Gain Positive Emotion Points equal to current Emotion Level. If at Emotion Level 5 gain 4 Light";
 
@@ -327,7 +327,7 @@ namespace CustomDLLs
         }
     }
 
-    public class DiceCardSelfAbility_staggerProtection3start : DiceCardSelfAbilityBase
+    public class DiceCardSelfAbility_seraph_staggerProtection3start : DiceCardSelfAbilityBase
     {
         public static string Desc = "[Combat Start] Gain 3 Stagger Protection";
 
@@ -339,7 +339,7 @@ namespace CustomDLLs
         }
     }
 
-    public class DiceCardSelfAbility_borrowed_time_bind : DiceCardSelfAbilityBase
+    public class DiceCardSelfAbility_seraph_borrowed_time_bind : DiceCardSelfAbilityBase
     {
         public static string Desc = "[On Use] Inflict self with 2 Bind next Scene";
 
@@ -351,13 +351,13 @@ namespace CustomDLLs
         }
     }
 
-    public class DiceCardSelfAbility_force_clash : DiceCardSelfAbilityBase
+    public class DiceCardSelfAbility_seraph_force_clash : DiceCardSelfAbilityBase
     {
         public static string Desc = "The targeted dice becomes untargetable and is forced to clash with this page";
 
-        private BattleUnitBuf_forceClash _aggroBuf;
+        private BattleUnitBuf_seraph_forceClash _aggroBuf;
 
-        private class BattleUnitBuf_OnApplyCard_called : BattleUnitBuf { public override bool Hide => true; }
+        private class BattleUnitBuf_seraph_OnApplyCard_called : BattleUnitBuf { public override bool Hide => true; }
 
         public static void RedirectToNewTarget(Faction userFaction, BattlePlayingCardDataInUnitModel cardToRedirect)
         {
@@ -386,13 +386,13 @@ namespace CustomDLLs
 
         public override void OnApplyCard()
         {
-            owner.bufListDetail.AddBuf(new BattleUnitBuf_OnApplyCard_called());
+            owner.bufListDetail.AddBuf(new BattleUnitBuf_seraph_OnApplyCard_called());
         }
 
         //Using GetCostAdder() instead of OnApplyCard() because OnApplyCard() is called before card.targetSlotOrder is set lmao
         public override int GetCostAdder(BattleUnitModel unit, BattleDiceCardModel self)
         {
-            var onApplyCardCalledFlag = unit?.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_OnApplyCard_called);
+            var onApplyCardCalledFlag = unit?.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_seraph_OnApplyCard_called);
             if (onApplyCardCalledFlag != null)
             {
                 onApplyCardCalledFlag.Destroy();
@@ -418,7 +418,7 @@ namespace CustomDLLs
                         RedirectToNewTarget(unit.faction, otherCard);
                     }
                 }
-                _aggroBuf = new BattleUnitBuf_forceClash(card);
+                _aggroBuf = new BattleUnitBuf_seraph_forceClash(card);
                 card.target.bufListDetail.AddBuf(_aggroBuf);
             }
             return base.GetCostAdder(unit, self);
@@ -426,7 +426,7 @@ namespace CustomDLLs
 
         public override void OnReleaseCard()
         {
-            var aggroBuf = card.target.bufListDetail.GetActivatedBufList().OfType<BattleUnitBuf_forceClash>().FirstOrDefault(x => x.AggroSource == card);
+            var aggroBuf = card.target.bufListDetail.GetActivatedBufList().OfType<BattleUnitBuf_seraph_forceClash>().FirstOrDefault(x => x.AggroSource == card);
             aggroBuf?.RemoveBufsAndPassive();
             aggroBuf?.Destroy();
         }
@@ -438,17 +438,17 @@ namespace CustomDLLs
         
         
 
-        private class BattleUnitBuf_forceClash : BattleUnitBuf
+        private class BattleUnitBuf_seraph_forceClash : BattleUnitBuf
         {
 
             public readonly BattlePlayingCardDataInUnitModel AggroSource;
-            readonly List<BattleUnitBuf_dont_target_die> _redirectBuffs = new List<BattleUnitBuf_dont_target_die>();
-            PassiveAbility_blockSpecificDice _blockTargetedDiePassive;
-            PassiveAbility_blockSpecificDice _limitTargetsPassive;
+            readonly List<BattleUnitBuf_seraph_dont_target_die> _redirectBuffs = new List<BattleUnitBuf_seraph_dont_target_die>();
+            PassiveAbility_seraph_blockSpecificDice _blockTargetedDiePassive;
+            PassiveAbility_seraph_blockSpecificDice _limitTargetsPassive;
             private BattleDiceCardModel _cardToRetarget;
 
             public override bool Hide => true;
-            public BattleUnitBuf_forceClash(BattlePlayingCardDataInUnitModel aggro)
+            public BattleUnitBuf_seraph_forceClash(BattlePlayingCardDataInUnitModel aggro)
             {
                 AggroSource = aggro;
             }
@@ -458,20 +458,20 @@ namespace CustomDLLs
                 foreach (var unit in BattleObjectManager.instance.GetAliveList())
                 {
                     var _aggroSourceSlot = unit == AggroSource.owner ? AggroSource.slotOrder : -1;
-                    var buf = new BattleUnitBuf_dont_target_die(unit, AggroSource.target, AggroSource.targetSlotOrder, _aggroSourceSlot);
+                    var buf = new BattleUnitBuf_seraph_dont_target_die(unit, AggroSource.target, AggroSource.targetSlotOrder, _aggroSourceSlot);
                     _redirectBuffs.Add(buf);
                     unit.bufListDetail.AddBuf(buf);
                 }
 
                 var speedDicesField = typeof(SpeedDiceSetter).GetField("_speedDices", BindingFlags.NonPublic | BindingFlags.Instance);
                 
-                _limitTargetsPassive = new PassiveAbility_blockSpecificDice(AggroSource.owner, AggroSource.target, AggroSource.targetSlotOrder);
+                _limitTargetsPassive = new PassiveAbility_seraph_blockSpecificDice(AggroSource.owner, AggroSource.target, AggroSource.targetSlotOrder);
                 var aggroSourceDice = (List<SpeedDiceUI>)speedDicesField.GetValue(AggroSource.owner.view.speedDiceSetterUI);
                 _limitTargetsPassive.SetDice(aggroSourceDice.Where(x => x.OrderOfDice != AggroSource.slotOrder), new[] { aggroSourceDice.FirstOrDefault(x => x.OrderOfDice == AggroSource.slotOrder) });
                 AggroSource.owner.passiveDetail.AddPassive(_limitTargetsPassive);
                 AggroSource.owner.passiveDetail.OnCreated();
 
-                _blockTargetedDiePassive = new PassiveAbility_blockSpecificDice(AggroSource.target);
+                _blockTargetedDiePassive = new PassiveAbility_seraph_blockSpecificDice(AggroSource.target);
                 var aggroTargetDice = (List<SpeedDiceUI>)speedDicesField.GetValue(AggroSource.target.view.speedDiceSetterUI);
                 _blockTargetedDiePassive.SetDice(new[] { aggroTargetDice.FirstOrDefault(x => x.OrderOfDice == AggroSource.targetSlotOrder) }, aggroTargetDice.Where(x => x.OrderOfDice != AggroSource.targetSlotOrder));
                 AggroSource.target.passiveDetail.AddPassive(_blockTargetedDiePassive);
@@ -556,7 +556,7 @@ namespace CustomDLLs
                 }
             }
 
-            private class BattleUnitBuf_dont_target_die : BattleUnitBuf
+            private class BattleUnitBuf_seraph_dont_target_die : BattleUnitBuf
             {
                 public override bool Hide => true;
 
@@ -566,7 +566,7 @@ namespace CustomDLLs
                 readonly int _originSlot;
                 private BattleDiceCardModel _cardToRetarget;
 
-                public BattleUnitBuf_dont_target_die(BattleUnitModel owner, BattleUnitModel target, int targetSlot, int originSlot = -1)
+                public BattleUnitBuf_seraph_dont_target_die(BattleUnitModel owner, BattleUnitModel target, int targetSlot, int originSlot = -1)
                 {
                     _owner = owner;
                     _target = target;
@@ -595,7 +595,7 @@ namespace CustomDLLs
                 }
             }
 
-            private class PassiveAbility_blockSpecificDice : PassiveAbilityBase
+            private class PassiveAbility_seraph_blockSpecificDice : PassiveAbilityBase
             {
                 readonly List<(SpeedDiceUI Die, int OriginalIndex)> _blockedDiceTuples;
                 readonly List<(SpeedDiceUI Die, int OriginalIndex)> _targetableDiceTuples;
@@ -608,7 +608,7 @@ namespace CustomDLLs
 
                 public override string debugDesc => "A hacky solution to make it so CheckBlockDice() will return true for all dice except the one with the aggro card slotted";
 
-                public PassiveAbility_blockSpecificDice(BattleUnitModel diceOwner, BattleUnitModel specificEnemyToBlock = null, int specificEnemySlotToBlock = -1)
+                public PassiveAbility_seraph_blockSpecificDice(BattleUnitModel diceOwner, BattleUnitModel specificEnemyToBlock = null, int specificEnemySlotToBlock = -1)
                 {
                     _diceOwner = diceOwner;
                     _specificEnemyToBlock = specificEnemyToBlock;
@@ -681,16 +681,4 @@ namespace CustomDLLs
             }
         }
     }
-
-    //public class DiceCardSelfAbility_keep_them_distracted : DiceCardSelfAbilityBase
-    //{
-    //    public static string Desc = "[On Play] Spend one stack of The Bonds that Bind Us to hide the targets of all of Linus's pages this Scene";
-
-    //    public override bool OnChooseCard(BattleUnitModel owner)
-    //    {
-    //        return base.OnChooseCard(owner);
-    //    }
-
-    //    public override 
-    //}
 }

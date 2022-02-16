@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace CustomDLLs
 {
-	public class BehaviourAction_johannaexecute : BehaviourActionBase
+	public class BehaviourAction_seraph_johannaexecute : BehaviourActionBase
 	{
 		public override List<RencounterManager.MovingAction> GetMovingAction(ref RencounterManager.ActionAfterBehaviour self, ref RencounterManager.ActionAfterBehaviour opponent)
 		{
@@ -40,7 +40,7 @@ namespace CustomDLLs
 		}
 	}
 
-	public class BehaviourAction_borrowed_time : BehaviourActionBase
+	public class BehaviourAction_seraph_borrowed_time : BehaviourActionBase
 	{
 		public override bool IsMovable()
 		{
@@ -84,18 +84,18 @@ namespace CustomDLLs
         }
 	}
 
-	public class BehaviourAction_linus_area : BehaviourActionBase
+	public class BehaviourAction_seraph_linus_area : BehaviourActionBase
 	{
 		public override FarAreaEffect SetFarAreaAtkEffect(BattleUnitModel self)
 		{
 			_self = self;
-			FarAreaeffect_LinusArea farAreaeffect_LinusArea = new GameObject().AddComponent<FarAreaeffect_LinusArea>();
+			FarAreaeffect_seraph_LinusArea farAreaeffect_LinusArea = new GameObject().AddComponent<FarAreaeffect_seraph_LinusArea>();
 			farAreaeffect_LinusArea.Init(self, Array.Empty<object>());
 			return farAreaeffect_LinusArea;
 		}
 	}
 
-	public class FarAreaeffect_LinusArea : FarAreaEffect
+	public class FarAreaeffect_seraph_LinusArea : FarAreaEffect
 	{
 		public override bool HasIndependentAction
 		{
