@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using UnityEngine;
 
 namespace CustomDLLs
@@ -124,5 +125,16 @@ namespace CustomDLLs
         }
 
         private int count;
+    }
+
+    public class DiceCardAbility_seraph_bonds_powerup : DiceCardAbilityBase
+    {
+        public static string Desc = "add power equal to stacks of The Bonds that Bind Us, to a max of 4";
+
+        public override void BeforeRollDice()
+        {
+            var stacks = owner.bufListDetail.GetActivatedBufList().OfType<BattleUnitBuf_bonds>().Select(x => x.stack).Sum();
+            behavior.ApplyDiceStatBonus(new DiceStatBonus { power = Math.Min(stacks, 4) });
+        }
     }
 }
