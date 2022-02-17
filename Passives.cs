@@ -302,31 +302,33 @@ namespace CustomDLLs
 
         protected override int DesiredStacks { get => 2; }
 
-        public override void RoundStartEffect()
+        public override void RoundStartEffect(int stacks)
         {
-            owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Protection, 2);
+            var buffAmount = Math.Min(stacks, 3);
+            owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Protection, buffAmount);
             var allies = BattleObjectManager.instance.GetAliveList(owner.faction);
             allies.Remove(owner);
             var allyToBuff = RandomUtil.SelectOne(allies);
-            allyToBuff.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Protection, 2);
+            allyToBuff.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Protection, buffAmount);
         }
     }
 
     public class PassiveAbility_seraph_bonds_that_bind_us_restore : PassiveAbility_seraph_bonds_base
     {
         public override int CardId { get => 10; }
-        public override void RoundStartEffect()
+        public override void RoundStartEffect(int stacks)
         {
             var allies = BattleObjectManager.instance.GetAliveList(owner.faction).ToList();
+            var restoreAmount = Math.Min(stacks * 5, 15);
             for (int i = 0; i < 2; i++)
             {
                 if (allies.Count() > 0)
                 {
                     var allyToHeal = RandomUtil.SelectOne(allies);
-                    allyToHeal.RecoverHP(10);
+                    allyToHeal.RecoverHP(restoreAmount);
                     if (!allyToHeal.IsBreakLifeZero() && allyToHeal.breakDetail.breakGauge > 0)
                     {
-                        allyToHeal.breakDetail.RecoverBreak(10);
+                        allyToHeal.breakDetail.RecoverBreak(restoreAmount);
                     }
                     allies.Remove(allyToHeal);
                 }
@@ -338,13 +340,14 @@ namespace CustomDLLs
     {
         public override int CardId { get => 11; }
 
-        public override void RoundStartEffect()
+        public override void RoundStartEffect(int stacks)
         {
-            owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Quickness, 1);
+            var buffStacks = Math.Max(3, (int)Math.Ceiling(stacks / 2f));
+            owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Quickness, buffStacks);
             var allies = BattleObjectManager.instance.GetAliveList(owner.faction);
             allies.Remove(owner);
             var allyToBuff = RandomUtil.SelectOne(allies);
-            allyToBuff.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Quickness, 1);
+            allyToBuff.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Quickness, buffStacks);
         }
     }
 
@@ -407,11 +410,11 @@ namespace CustomDLLs
             var bondsBuff = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_seraph_bonds);
             if (bondsBuff != null && bondsBuff.stack > 0)
             {
-                RoundStartEffect();
+                RoundStartEffect(bondsBuff.stack);
             }
         }
 
-        public virtual void RoundStartEffect() { }
+        public virtual void RoundStartEffect(int stacks) { }
     }
 
     public class PassiveAbility_seraph_fueled_by_light : PassiveAbilityBase
@@ -465,6 +468,11 @@ namespace CustomDLLs
                     decay.ChangeToYanDecay();
                 }
             }
+        }
+
+        public override double ChangeDamage(BattleUnitModel attacker, double dmg)
+        {
+            return dmg - 2;
         }
 
         //Linus prioritizes targets based on which ones have unstable entropy, followed by which one has the most erosion 
@@ -583,7 +591,7 @@ namespace CustomDLLs
         }
     }
 
-    public class PassiveAbility_seraph_retaliateJo : PassiveAbilityBase
+    public class PassiveAbility_seraph_deflect_assaultJo : PassiveAbilityBase
     {
         public override void OnStartBattle()
         {
