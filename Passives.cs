@@ -448,6 +448,12 @@ namespace CustomDLLs
 
     public class PassiveAbility_seraph_the_nymane_key : PassiveAbilityBase
     {
+        public override void OnRoundStart()
+        {
+            var stacks = Owner.bufListDetail.GetKewordBufStack(KeywordBuf.Decay);
+            Owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Strength, stacks);
+        }
+
         public override void OnSucceedAttack(BattleDiceBehavior behavior)
         {
             if (RandomUtil.valueForProb < 0.5f)

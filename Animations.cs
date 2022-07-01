@@ -57,7 +57,7 @@ namespace CustomDLLs
 			if (self.result == Result.Win && self.data.actionType == ActionType.Atk && !opponent.behaviourResultData.IsFarAtk())
 			{
 				var finalAttack = self.behaviourResultData.resultDiceValue == self.behaviourResultData.resultDiceMin;
-                var movingAction = new RencounterManager.MovingAction(NextAction(), _firstAttack ? CharMoveState.MoveForward : CharMoveState.Stop, 0f, false, 0.2f);
+                var movingAction = new RencounterManager.MovingAction(NextAction(), _firstAttack ? CharMoveState.MoveOpponent : CharMoveState.Stop, 0f, false, 0.2f);
 				movingAction.SetEffectTiming(EffectTiming.PRE, EffectTiming.NONE, EffectTiming.NONE);
 				moveActions.Add(movingAction);
 				var movingAction2 = new RencounterManager.MovingAction(NextAction(), CharMoveState.Stop, 3f, false, finalAttack ? 1f : 0.2f);

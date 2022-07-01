@@ -48,7 +48,7 @@ namespace CustomDLLs
     public class BattleUnitBuf_unstable_entropy : BattleUnitBuf
     {
         private const string buffName = "UnstableEntropy";
-        private const int overflowValue = 4;
+        private const int overflowValue = 3;
         //private PassiveAbilityBase addedPassive;
 
         public static int Duration = 3;
@@ -77,16 +77,17 @@ namespace CustomDLLs
 
         public override void OnRoundStart()
         {
-            var erosionBuff = _owner.bufListDetail.GetActivatedBuf(KeywordBuf.Decay);
-            _owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Quickness, erosionBuff?.stack ?? 0);
-            if (erosionBuff?.stack >= overflowValue)
+            var erosionBuff = _owner.bufListDetail.GetKewordBufStack(KeywordBuf.Decay);
+            _owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Quickness, erosionBuff);
+            var overflow = Math.Max(erosionBuff - 3, 0);
+            if (overflow > 0)
             {
                 Debug.Log("Unstable Entropy triggered");
                 var allies = BattleObjectManager.instance.GetAliveList(_owner.faction);
                 allies.Remove(_owner);
                 foreach (var ally in allies)
                 {
-                    ally.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Decay, 1);
+                    ally.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Decay, overflow);
                     if (ally.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay decay)
                     {
                         decay.ChangeToYanDecay();

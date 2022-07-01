@@ -106,12 +106,27 @@ namespace CustomDLLs
 
     public class DiceCardAbility_seraph_borrowed_time_recycle : DiceCardAbilityBase
     {
-        public static string Desc = "[On Hit] Recycle this die unless it rolls the minimum value (Up to 4 times)";
-        public override void OnSucceedAttack()
+        public static string Desc = "[On Hit] Recycle this die unless it rolls the minimum value (Up to 4 times). For every hit beyond the second inflict 1 Erosion to target and self.";
+
+        private int count;
+
+        public override void OnSucceedAttack(BattleUnitModel target)
         {
-            if (count == 0)
+            if (count > 2)
             {
-                BehaviourAction_sweeperOnly.movable = true;
+                owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Decay, 1, owner);
+                if (owner.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay erosionOwner)
+                {
+                    erosionOwner.ChangeToYanDecay();
+                }
+                if (target != null)
+                {
+                    target.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Decay, 1, owner);
+                    if (target.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay erosionTarget)
+                    {
+                        erosionTarget.ChangeToYanDecay();
+                    }
+                }
             }
             if (count >= 4)
             {
@@ -123,8 +138,6 @@ namespace CustomDLLs
                 count++;
             }
         }
-
-        private int count;
     }
 
     public class DiceCardAbility_seraph_bonds_powerup : DiceCardAbilityBase
@@ -136,5 +149,41 @@ namespace CustomDLLs
             var stacks = owner.bufListDetail.GetActivatedBufList().OfType<BattleUnitBuf_seraph_bonds>().Select(x => x.stack).Sum();
             behavior.ApplyDiceStatBonus(new DiceStatBonus { power = Math.Min(stacks, 4) });
         }
+    }
+
+    public class DiceCardAbility_seraph_erosion_kickback : DiceCardAbilityBase
+    {
+        public static string Desc = $"[On Hit] Inflict target and self with {Amount} Erosion";
+
+        protected const int Amount = 1;
+
+        public override void OnSucceedAttack(BattleUnitModel target)
+        {
+            owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Decay, Amount, owner);
+            var erosion = owner.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) as BattleUnitBuf_Decay;
+            if (erosion != null)
+            {
+                erosion.ChangeToYanDecay();
+            }
+            if (target != null)
+            {
+                target.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Decay, Amount, owner);
+                erosion = target.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) as BattleUnitBuf_Decay;
+                if (erosion != null)
+                {
+                    erosion.ChangeToYanDecay();
+                }
+            }
+        }
+    }
+
+    public class DiceCardAbility_seraph_erosion_kickback2 : DiceCardAbility_seraph_erosion_kickback
+    {
+        protected new const int Amount = 2;
+    }
+
+    public class DiceCardAbility_seraph_erosion_kickback3 : DiceCardAbility_seraph_erosion_kickback
+    {
+        protected new const int Amount = 3;
     }
 }

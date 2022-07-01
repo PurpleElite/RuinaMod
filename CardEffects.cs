@@ -351,6 +351,16 @@ namespace CustomDLLs
         }
     }
 
+    public class DiceCardSelfAbility_seraph_borrowed_time_light : DiceCardSelfAbilityBase
+    {
+        public static string Desc = "[On Use] Lose 2 Light next Scene";
+
+        public override void OnUseCard()
+        {
+            owner.cardSlotDetail.LoseWhenStartRound(2);
+        }
+    }
+
     public class DiceCardSelfAbility_seraph_force_clash : DiceCardSelfAbilityBase
     {
         public static string Desc = "The targeted dice becomes untargetable and is forced to clash with this page";
@@ -397,7 +407,7 @@ namespace CustomDLLs
             {
                 onApplyCardCalledFlag.Destroy();
                 unit.bufListDetail.RemoveBuf(onApplyCardCalledFlag);
-                var card = unit.cardSlotDetail.cardAry.FirstOrDefault(x => x.card == self);
+                var card = unit.cardSlotDetail.cardAry.FirstOrDefault(x => x?.card == self);
                 if (card == null)
                 {
                     Debug.Log("Something has gone wrong!");
@@ -522,6 +532,20 @@ namespace CustomDLLs
 
             public override int GetCardCostAdder(BattleDiceCardModel card)
             {
+                //Hijack here to ensure all blocked dice stay visually blocked
+                var selectedDieIndex = BattleManagerUI.Instance.selectedAllyDice?.OrderOfDice;
+                if (selectedDieIndex == AggroSource.targetSlotOrder)
+                {
+                    var enemies = BattleObjectManager.instance.GetAliveList((card.owner.faction == Faction.Enemy) ? Faction.Player : Faction.Enemy);
+                    foreach (var enemy in enemies)
+                    {
+                        for (int i = 0; i < enemy.cardSlotDetail.cardAry.Count(); i++)
+                        {
+                            if (enemy.cardSlotDetail.cardAry[i] != AggroSource)
+                                enemy.view.speedDiceSetterUI.GetSpeedDiceByIndex(i).BlockDice(true, true);
+                        }
+                    }
+                }
                 //Hijack here to change target of card after it's been set to its final value
                 if (_cardToRetarget == card)
                 {
