@@ -353,10 +353,12 @@ namespace CustomDLLs
 
     public class PassiveAbility_seraph_bonds_base : PassiveAbilityBase
     {
-        public static string Desc = "At the start of the act gain one stack of The Bonds that Bind Us and add a unique combat page to hand.";
+        public static string Desc = "At the start of the act gain one stack of The Bonds that Bind Us and add a unique combat page to hand. Gain a second copy of the page at emotion level 3.";
         public virtual int CardId { get => 0; }
 
         protected virtual int DesiredStacks { get => 1; }
+
+        protected bool SecondCardAdded = false;
 
         public override void OnWaveStart()
         {
@@ -407,6 +409,11 @@ namespace CustomDLLs
 
         public override void OnRoundStart()
         {
+            if (owner.emotionDetail.EmotionLevel == 3 && !SecondCardAdded)
+            {
+                owner.allyCardDetail.AddNewCard(new LorId(ModData.WorkshopId, CardId));
+                SecondCardAdded = true;
+            }
             var bondsBuff = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_seraph_bonds);
             if (bondsBuff != null && bondsBuff.stack > 0)
             {

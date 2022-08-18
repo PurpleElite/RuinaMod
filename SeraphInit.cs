@@ -1,4 +1,5 @@
-﻿using LOR_XML;
+﻿using HarmonyLib;
+using LOR_XML;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -23,6 +24,7 @@ namespace CustomDLLs
             ModData.AssembliesPath = new DirectoryInfo(Path.GetDirectoryName(Uri.UnescapeDataString(new UriBuilder(Assembly.GetExecutingAssembly().CodeBase).Path)));
             GetSprites(new DirectoryInfo((ModData.AssembliesPath?.ToString()) + "/Sprites"));
             AddEffectText();
+            RoadmapPatch.Patch();
         }
 
         private static void GetSprites(DirectoryInfo parentDir)
@@ -39,7 +41,7 @@ namespace CustomDLLs
             {
                 Texture2D texture2D = new Texture2D(2, 2);
                 texture2D.LoadImage(File.ReadAllBytes(fileInfo.FullName));
-                Sprite value = Sprite.Create(texture2D, new Rect(0f, 0f, (float)texture2D.width, (float)texture2D.height), new Vector2(0f, 0f));
+                Sprite value = Sprite.Create(texture2D, new Rect(0f, 0f, texture2D.width, texture2D.height), new Vector2(0f, 0f));
                 string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileInfo.FullName);
                 ModData.Sprites[fileNameWithoutExtension] = value;
             }

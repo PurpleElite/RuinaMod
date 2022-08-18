@@ -66,6 +66,10 @@ namespace CustomDLLs
     {
         public static string Desc = "[On Hit] Inflict Unstable Entropy";
 
+        public override string[] Keywords
+        {
+            get { return new string[] { "UnstableEntropy" }; }
+        }
         public override void OnSucceedAttack(BattleUnitModel target)
         {
             Debug.Log("entropy OnSucceedAttack()");
@@ -106,33 +110,30 @@ namespace CustomDLLs
 
     public class DiceCardAbility_seraph_borrowed_time_recycle : DiceCardAbilityBase
     {
-        public static string Desc = "[On Hit] Recycle this die unless it rolls the minimum value (Up to 4 times). For every hit beyond the second inflict 1 Erosion to target and self.";
+        public static string Desc = "[On Hit] Recycle this die three times. When max value is rolled inflict 1 Erosion to target and self.";
 
         private int count;
 
         public override void OnSucceedAttack(BattleUnitModel target)
         {
-            if (count > 2)
+            owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Decay, 1, owner);
+            if (owner.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay erosionOwner)
             {
-                owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Decay, 1, owner);
-                if (owner.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay erosionOwner)
+                erosionOwner.ChangeToYanDecay();
+            }
+            if (target != null)
+            {
+                target.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Decay, 1, owner);
+                if (target.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay erosionTarget)
                 {
-                    erosionOwner.ChangeToYanDecay();
-                }
-                if (target != null)
-                {
-                    target.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Decay, 1, owner);
-                    if (target.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay erosionTarget)
-                    {
-                        erosionTarget.ChangeToYanDecay();
-                    }
+                    erosionTarget.ChangeToYanDecay();
                 }
             }
-            if (count >= 4)
+            if (count >= 3)
             {
                 return;
             }
-            if (behavior.DiceVanillaValue > behavior.GetDiceMin())
+            if (behavior.DiceVanillaValue == behavior.GetDiceMax())
             {
                 ActivateBonusAttackDice();
                 count++;
@@ -151,9 +152,9 @@ namespace CustomDLLs
         }
     }
 
-    public class DiceCardAbility_seraph_erosion_kickback : DiceCardAbilityBase
+    public class DiceCardAbility_seraph_erosion_kickback1 : DiceCardAbilityBase
     {
-        public static string Desc = $"[On Hit] Inflict target and self with {Amount} Erosion";
+        public static string Desc = "[On Hit] Inflict target and self with 1 Erosion";
 
         protected const int Amount = 1;
 
@@ -177,13 +178,15 @@ namespace CustomDLLs
         }
     }
 
-    public class DiceCardAbility_seraph_erosion_kickback2 : DiceCardAbility_seraph_erosion_kickback
+    public class DiceCardAbility_seraph_erosion_kickback2 : DiceCardAbility_seraph_erosion_kickback1
     {
+        public static new string Desc = "[On Hit] Inflict target and self with 2 Erosion";
         protected new const int Amount = 2;
     }
 
-    public class DiceCardAbility_seraph_erosion_kickback3 : DiceCardAbility_seraph_erosion_kickback
+    public class DiceCardAbility_seraph_erosion_kickback3 : DiceCardAbility_seraph_erosion_kickback1
     {
+        public static new string Desc = "[On Hit] Inflict target and self with 3 Erosion";
         protected new const int Amount = 3;
     }
 }

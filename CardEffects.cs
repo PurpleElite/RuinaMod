@@ -10,17 +10,15 @@ namespace CustomDLLs
 {
     public class DiceCardSelfAbility_seraph_extra_clash_dice : DiceCardSelfAbilityBase
     {
-        public static string Desc = "[On Clash] Inflict 2 Fragile and add two Slash dice (Roll: 5-8) to the dice queue";
-        public override string[] Keywords =>  new string[] { "Vulnerable_Keyword" };
+        public static string Desc = "[On Clash] Add a Slash dice (Roll: 5-8) to the dice queue";
 
         private const BehaviourDetail _diceType = BehaviourDetail.Slash;
         private const MotionDetail _motionType = MotionDetail.H;
         private readonly int min = 5;
         private readonly int max = 8;
-        private const int diceCount = 2;
+        private const int diceCount = 1;
         public override void OnStartParrying()
         {
-            card.target.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Vulnerable, 2, owner);
             var diceOnCard = card.GetDiceBehaviourXmlList();
             var firstDiceCopy = diceOnCard.FirstOrDefault(x => x.Detail == _diceType)?.Copy();
             firstDiceCopy = firstDiceCopy ?? diceOnCard.FirstOrDefault(x => x.Type == BehaviourType.Atk)?.Copy();
@@ -172,7 +170,7 @@ namespace CustomDLLs
 
     public class DiceCardSelfAbility_seraph_bonds_protection : DiceCardSelfAbility_seraph_bonds_base
     {
-        public static new string Desc = DiceCardSelfAbility_seraph_bonds_base.Desc + " If target is an enemy, spend 1 stack of The Bonds That Bind Us to redirect all target's cards to the dice with this card instead.";
+        public static new string Desc = DiceCardSelfAbility_seraph_bonds_base.Desc + " If target is an enemy, spend 1 stack of Bonds to redirect all target's cards to the dice with this card instead.";
 
         protected override void TargetEnemy(BattleUnitBuf bondsBuff)
         {
@@ -191,7 +189,7 @@ namespace CustomDLLs
 
     public class DiceCardSelfAbility_seraph_bonds_drive : DiceCardSelfAbility_seraph_bonds_base
     {
-        public static new string Desc = DiceCardSelfAbility_seraph_bonds_base.Desc + " If target is an enemy, spend 1 stack of The Bonds That Bind Us to turn this into a Mass-Individual page.";
+        public static new string Desc = DiceCardSelfAbility_seraph_bonds_base.Desc + " If target is an enemy, spend 1 stack of Bonds to turn this into a Mass-Individual page.";
         private BattleDiceCardModel originalCard;
         protected override void TargetEnemy(BattleUnitBuf bondsBuff)
         {
@@ -249,7 +247,7 @@ namespace CustomDLLs
 
     public class DiceCardSelfAbility_seraph_bonds_restore : DiceCardSelfAbility_seraph_bonds_base
     {
-        public static new string Desc = DiceCardSelfAbility_seraph_bonds_base.Desc + " If target is an enemy, spend 1 stack of The Bonds That Bind Us to grant 1 Light and 1 Positive Emotion Point to allies and purge their ailments";
+        public static new string Desc = DiceCardSelfAbility_seraph_bonds_base.Desc + " If target is an enemy, spend 1 stack of Bonds to make all damage dealt by friendly combat pages this scene restore user's hp.";
 
         protected override void TargetEnemy(BattleUnitBuf bondsBuff)
         {
@@ -261,13 +259,29 @@ namespace CustomDLLs
             var allies = BattleObjectManager.instance.GetAliveList(owner.faction);
             foreach (var ally in allies)
             {
-                ally.cardSlotDetail.RecoverPlayPoint(1);
-                ally.emotionDetail.CreateEmotionCoin(EmotionCoinType.Positive);
-                var debuffs = ally.bufListDetail.GetActivatedBufList().Where(x => x.positiveType == BufPositiveType.Negative);
-                foreach (var debuff in debuffs)
-                {
-                    debuff.Destroy();
-                }
+                ally.bufListDetail.AddBuf(new BattleUnitBuf_seraph_bonds_restore_buff());
+                //ally.cardSlotDetail.RecoverPlayPoint(1);
+                //ally.emotionDetail.CreateEmotionCoin(EmotionCoinType.Positive, 2);
+                //var debuffs = ally.bufListDetail.GetActivatedBufList().Where(x => x.positiveType == BufPositiveType.Negative);
+                //foreach (var debuff in debuffs)
+                //{
+                //    debuff.Destroy();
+                //}
+            }
+        }
+
+        public class BattleUnitBuf_seraph_bonds_restore_buff : BattleUnitBuf
+        {
+            public override void OnSuccessAttack(BattleDiceBehavior behavior)
+            {
+                _owner.RecoverHP(behavior.DiceResultDamage);
+                base.OnSuccessAttack(behavior);
+            }
+
+            public override void OnRoundEnd()
+            {
+                Destroy();
+                base.OnRoundEnd();
             }
         }
     }
@@ -371,10 +385,11 @@ namespace CustomDLLs
 
         public static void RedirectToNewTarget(Faction userFaction, BattlePlayingCardDataInUnitModel cardToRedirect)
         {
+            //This isn't working right
             Debug.Log("otherCard is targeting the same dice as PCT");
             var targetsOfThisScript = BattleObjectManager.instance.GetAliveList(userFaction)
                 .SelectMany(x => x.cardSlotDetail.cardAry)
-                .Where(x => x?.card.XmlData.Script == "force_clash")
+                .Where(x => x?.card.XmlData.Script == "seraph_force_clash")
                 .Select(x => (x?.target, x.targetSlotOrder));
             var potentialNewTargets = BattleObjectManager.instance.GetAliveList(userFaction == Faction.Player ? Faction.Enemy : Faction.Player)
                 .SelectMany(x => Enumerable.Range(0, x.view.speedDiceSetterUI.SpeedDicesCount).Select(y => (x, y)))

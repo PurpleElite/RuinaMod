@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
@@ -77,9 +76,9 @@ namespace CustomDLLs
 
         public override void OnRoundStart()
         {
-            var erosionBuff = _owner.bufListDetail.GetKewordBufStack(KeywordBuf.Decay);
-            _owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Quickness, erosionBuff);
-            var overflow = Math.Max(erosionBuff - 3, 0);
+            var erosionStacks = _owner.bufListDetail.GetKewordBufStack(KeywordBuf.Decay);
+            _owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Quickness, erosionStacks);
+            var overflow = Math.Max(erosionStacks - overflowValue, 0);
             if (overflow > 0)
             {
                 Debug.Log("Unstable Entropy triggered");
@@ -110,7 +109,6 @@ namespace CustomDLLs
 
         public override void OnRoundEnd()
         {
-            Debug.Log("entropy OnRoundEnd()");
             stack--;
             if (stack <= 0)
             {
