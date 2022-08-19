@@ -3,6 +3,7 @@ using LOR_XML;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Xml.Serialization;
 using UnityEngine;
@@ -11,7 +12,7 @@ namespace CustomDLLs
 {
     internal static class ModData
     {
-        internal const string WorkshopId = "SeraphOffice";
+        internal const string WorkshopId = "SeraphRunaways";
         internal static string Language = "en";
         internal static DirectoryInfo AssembliesPath;
         internal static Dictionary<string, Sprite> Sprites = new Dictionary<string, Sprite>();
@@ -24,6 +25,7 @@ namespace CustomDLLs
             ModData.AssembliesPath = new DirectoryInfo(Path.GetDirectoryName(Uri.UnescapeDataString(new UriBuilder(Assembly.GetExecutingAssembly().CodeBase).Path)));
             GetSprites(new DirectoryInfo((ModData.AssembliesPath?.ToString()) + "/Sprites"));
             AddEffectText();
+            InitStageClassInfo();
             RoadmapPatch.Patch();
         }
 
@@ -66,7 +68,15 @@ namespace CustomDLLs
                 }
             }
         }
+
+        private static void InitStageClassInfo()
+        {
+            var data = Singleton<StageClassInfoList>.Instance.GetData(new LorId(ModData.WorkshopId, 1));
+            //Get rid of the workshop id automatically added to the book LorIds, we want to use a vanilla book here
+            var needsBooksCopy = data.invitationInfo.needsBooks.ToArray();
+            data.invitationInfo.needsBooks.Clear();
+            data.invitationInfo.needsBooks.AddRange(needsBooksCopy.Select(x => new LorId(x.id)));
+            Singleton<StageClassInfoList>.Instance.recipeCondList.Add(data);
+        }
     }
-
-
 }
