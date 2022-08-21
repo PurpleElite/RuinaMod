@@ -6,7 +6,7 @@ using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
-namespace CustomDLLs
+namespace SeraphDLL
 {
     public class DiceCardSelfAbility_seraph_extra_clash_dice : DiceCardSelfAbilityBase
     {

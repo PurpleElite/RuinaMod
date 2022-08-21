@@ -1,12 +1,12 @@
 ﻿
-using CustomDLLs;
+using SeraphDLL;
 using LOR_DiceSystem;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace CustomDLLs
+namespace SeraphDLL
 {
     public class PassiveAbility_seraph_radiant_perseverance : PassiveAbilityBase
     {

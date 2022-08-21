@@ -7,7 +7,7 @@ using LOR_XML;
 using Sound;
 using UnityEngine;
 
-namespace CustomDLLs
+namespace SeraphDLL
 {
 	public class BehaviourAction_seraph_johannaexecute : BehaviourActionBase
 	{

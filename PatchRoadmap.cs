@@ -6,11 +6,11 @@ using UI;
 using UnityEngine;
 using static UI.UIIconManager;
 
-namespace CustomDLLs
+namespace SeraphDLL
 {
-    public static class RoadmapPatch
+    public static class PatchRoadmap
     {
-        private static readonly Harmony harmony = new Harmony("LoR.Purplelite.RoadmapPatch");
+        private static readonly Harmony harmony = new Harmony("LoR.Purplelite.PatchRoadmap");
         private static Dictionary<List<StageClassInfo>, UIStoryProgressIconSlot> _storySlots;
         private static bool _centerPanel_Init = false;
         private static bool _battleStoryPanel_Init = false;
@@ -21,7 +21,6 @@ namespace CustomDLLs
 			harmony.Patch(methodSetStoryLine, postfix: new HarmonyMethod(SymbolExtensions.GetMethodInfo(() => UIStoryProgressPanel_SetStoryLine_Postfix(null))));
             MethodInfo methodSetStoryIconDictionary = typeof(UISpriteDataManager).GetMethod("SetStoryIconDictionary", AccessTools.all);
             harmony.Patch(methodSetStoryIconDictionary, postfix: new HarmonyMethod(SymbolExtensions.GetMethodInfo(() => UISpriteDataManager_SetStoryIconDictionary_Postfix(null))));
-
         }
 
         private static void UIStoryProgressPanel_SetStoryLine_Postfix(UIStoryProgressPanel __instance)
@@ -86,9 +85,9 @@ namespace CustomDLLs
                 var iconSet = new IconSet
                 {
                     type = ModData.WorkshopId,
-                    icon = ModData.Sprites["StoryIcon"],
+                    icon = ModData.Sprites["Sprites_StoryIcon"],
                     color = storyIconDic.Values.First().color,
-                    iconGlow = ModData.Sprites["StoryIconGlow"],
+                    iconGlow = ModData.Sprites["Sprites_StoryIconGlow"],
                     colorGlow = storyIconDic.Values.First().colorGlow
                 };
                 storyIconDic.Add(iconSet.type, iconSet);

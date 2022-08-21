@@ -2,7 +2,7 @@
 using System.Reflection;
 using UnityEngine;
 
-namespace CustomDLLs
+namespace SeraphDLL
 {
     public class BattleUnitBuf_seraph_bonds : BattleUnitBuf
     {
@@ -26,7 +26,7 @@ namespace CustomDLLs
         public override void Init(BattleUnitModel owner)
         {
             base.Init(owner);
-            typeof(BattleUnitBuf).GetField("_bufIcon", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(this, ModData.Sprites[buffName]);
+            typeof(BattleUnitBuf).GetField("_bufIcon", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(this, ModData.Sprites["Sprites_" + buffName]);
             typeof(BattleUnitBuf).GetField("_iconInit", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(this, true);
         }
 
@@ -64,13 +64,8 @@ namespace CustomDLLs
         public override void Init(BattleUnitModel owner)
         {
             base.Init(owner);
-            typeof(BattleUnitBuf).GetField("_bufIcon", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(this, ModData.Sprites[buffName]);
+            typeof(BattleUnitBuf).GetField("_bufIcon", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(this, ModData.Sprites["Sprites_" + buffName]);
             typeof(BattleUnitBuf).GetField("_iconInit", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(this, true);
-            //if (addedPassive == null)
-            //{
-            //    addedPassive = _owner.passiveDetail.AddPassive(new PassiveAbility_unstable_entropy());
-            //    _owner.passiveDetail.OnCreated();
-            //}
             stack = Duration;
         }
 

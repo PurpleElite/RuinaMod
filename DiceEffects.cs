@@ -2,7 +2,7 @@
 using System.Linq;
 using UnityEngine;
 
-namespace CustomDLLs
+namespace SeraphDLL
 {
     public class DiceCardAbility_seraph_multi : DiceCardAbilityBase
     {

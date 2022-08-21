@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CustomDLLs
+namespace SeraphDLL
 {
 	public class DiceCardPriority_test : DiceCardPriorityBase
 	{
