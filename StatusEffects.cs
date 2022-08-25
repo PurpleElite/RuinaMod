@@ -6,7 +6,7 @@ namespace SeraphDLL
 {
     public class BattleUnitBuf_seraph_bonds : BattleUnitBuf
     {
-        private const string buffName = "BindBonds";
+        private const string buffName = "SeraphRunaways_BindBonds";
         protected override string keywordId
         {
             get
@@ -26,8 +26,8 @@ namespace SeraphDLL
         public override void Init(BattleUnitModel owner)
         {
             base.Init(owner);
-            typeof(BattleUnitBuf).GetField("_bufIcon", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(this, ModData.Sprites["Sprites_" + buffName]);
-            typeof(BattleUnitBuf).GetField("_iconInit", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(this, true);
+            //typeof(BattleUnitBuf).GetField("_bufIcon", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(this, ModData.Sprites["BufIcons_" + buffName]);
+            //typeof(BattleUnitBuf).GetField("_iconInit", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(this, true);
         }
 
         public override void OnRoundEnd()
@@ -44,9 +44,9 @@ namespace SeraphDLL
         }
     }
 
-    public class BattleUnitBuf_unstable_entropy : BattleUnitBuf
+    public class BattleUnitBuf_seraph_unstable_entropy : BattleUnitBuf
     {
-        private const string buffName = "UnstableEntropy";
+        private const string buffName = "SeraphRunaways_UnstableEntropy";
         private const int overflowValue = 3;
         //private PassiveAbilityBase addedPassive;
 
@@ -64,8 +64,8 @@ namespace SeraphDLL
         public override void Init(BattleUnitModel owner)
         {
             base.Init(owner);
-            typeof(BattleUnitBuf).GetField("_bufIcon", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(this, ModData.Sprites["Sprites_" + buffName]);
-            typeof(BattleUnitBuf).GetField("_iconInit", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(this, true);
+            //typeof(BattleUnitBuf).GetField("_bufIcon", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(this, ModData.Sprites["BufIcons_" + buffName]);
+            //typeof(BattleUnitBuf).GetField("_iconInit", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(this, true);
             stack = Duration;
         }
 

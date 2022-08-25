@@ -288,7 +288,7 @@ namespace SeraphDLL
 
     public class DiceCardSelfAbility_seraph_fastforward : DiceCardSelfAbilityBase
     {
-        public static string Desc = "[On Use] Grant all allies 2 Haste next Scene and draw 1 page.";
+        public static string Desc = "[On Use] Grant three random allies 1 Haste next Scene and draw 1 page.";
         public override string[] Keywords => new string[] { "Quickness_Keyword" };
 
         public override void OnUseCard()
@@ -296,9 +296,11 @@ namespace SeraphDLL
             Debug.Log("fastforward OnUseCard()");
             owner.allyCardDetail.DrawCards(1);
             var team = BattleObjectManager.instance.GetAliveList(owner.faction);
-            foreach (var ally in team)
+            for (int i = 0; i < 3 && team.Count > 0; i++)
             {
-                ally.bufListDetail.AddKeywordBufByCard(KeywordBuf.Quickness, 2, owner);
+                var ally = RandomUtil.SelectOne(team);
+                team.Remove(ally);
+                ally.bufListDetail.AddKeywordBufByCard(KeywordBuf.Quickness, 1, owner);
             }
         }
     }
@@ -418,7 +420,7 @@ namespace SeraphDLL
         public override int GetCostAdder(BattleUnitModel unit, BattleDiceCardModel self)
         {
             var onApplyCardCalledFlag = unit?.bufListDetail.GetActivatedBufList().FirstOrDefault(x => x is BattleUnitBuf_seraph_OnApplyCard_called);
-            if (onApplyCardCalledFlag != null)
+            if (onApplyCardCalledFlag != null && !onApplyCardCalledFlag.IsDestroyed())
             {
                 onApplyCardCalledFlag.Destroy();
                 unit.bufListDetail.RemoveBuf(onApplyCardCalledFlag);
@@ -588,10 +590,12 @@ namespace SeraphDLL
                 if (_limitTargetsPassive != null)
                 {
                     _limitTargetsPassive.destroyed = true;
+                    _limitTargetsPassive.Owner.passiveDetail.RemovePassive();
                 }
                 if (_blockTargetedDiePassive != null)
                 {
                     _blockTargetedDiePassive.destroyed = true;
+                    _blockTargetedDiePassive.Owner.passiveDetail.RemovePassive();
                 }
             }
 
@@ -666,10 +670,10 @@ namespace SeraphDLL
 
                 public override bool IsTargetable(BattleUnitModel attacker)
                 {
-                    if (_diceOwner.view.speedDiceSetterUI.SpeedDicesCount > 1)
+                    if ((_specificEnemyToBlock == null || SingletonBehavior<BattleManagerUI>.Instance.ui_unitCardsInHand.SelectedModel == _specificEnemyToBlock)
+                        && ((_specificEnemySlotToBlock == -1) || BattleManagerUI.Instance.selectedAllyDice?.OrderOfDice == _specificEnemySlotToBlock))
                     {
-                        if ((_specificEnemyToBlock == null || SingletonBehavior<BattleManagerUI>.Instance.ui_unitCardsInHand.SelectedModel == _specificEnemyToBlock)
-                            && ((_specificEnemySlotToBlock == -1) || BattleManagerUI.Instance.selectedAllyDice?.OrderOfDice == _specificEnemySlotToBlock))
+                        if (_diceOwner.view.speedDiceSetterUI.SpeedDicesCount > 1)
                         {
                             foreach (var (die, _) in _blockedDiceTuples)
                             {
@@ -685,6 +689,10 @@ namespace SeraphDLL
                                 _doTheLast = true;
                             }
                         }
+                        else
+                        {
+                            return false;
+                        }    
                     }
                     return base.IsTargetable(attacker);
                 }

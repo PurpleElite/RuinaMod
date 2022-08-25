@@ -26,7 +26,7 @@ namespace SeraphDLL
             var assemblyPath = new DirectoryInfo(Path.GetDirectoryName(Uri.UnescapeDataString(new UriBuilder(Assembly.GetExecutingAssembly().CodeBase).Path)));
             ModData.ModPath = assemblyPath.Parent;
             GetSprites(new DirectoryInfo((ModData.ModPath?.ToString()) + Sep + "Resource"));
-            AddEffectText();
+            //AddEffectText();
             InitStageClassInfo();
             PatchRoadmap.Patch();
             PatchBookThumbnail.Patch();
@@ -93,10 +93,6 @@ namespace SeraphDLL
         private static void InitStageClassInfo()
         {
             var data = Singleton<StageClassInfoList>.Instance.GetData(new LorId(ModData.WorkshopId, 1));
-            //Get rid of the workshop id automatically added to the book LorIds, we want to use a vanilla book here
-            var needsBooksCopy = data.invitationInfo.needsBooks.ToArray();
-            data.invitationInfo.needsBooks.Clear();
-            data.invitationInfo.needsBooks.AddRange(needsBooksCopy.Select(x => new LorId(x.id)));
             Singleton<StageClassInfoList>.Instance.recipeCondList.Add(data);
         }
     }

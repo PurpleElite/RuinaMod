@@ -55,8 +55,14 @@ namespace SeraphDLL
                     newRenderer.sprite = face;
                     switch (name)
                     {
+                        case "Johanna":
+                            newRenderer.transform.localPosition = new Vector3(-0.52f, 7.08f);
+                            break;
                         case "Linus": 
                             newRenderer.transform.localPosition = new Vector3(-0.51f, 6.2f);
+                            break;
+                        case "Sheire":
+                            newRenderer.transform.localPosition = new Vector3(-0.11f, 6f);
                             break;
                     }
                     

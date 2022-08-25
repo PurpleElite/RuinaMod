@@ -319,7 +319,7 @@ namespace SeraphDLL
         public override void RoundStartEffect(int stacks)
         {
             var allies = BattleObjectManager.instance.GetAliveList(owner.faction).ToList();
-            var restoreAmount = Math.Min(stacks * 5, 15);
+            var restoreAmount = Math.Min(stacks * 3, 9);
             for (int i = 0; i < 2; i++)
             {
                 if (allies.Count() > 0)
@@ -342,10 +342,8 @@ namespace SeraphDLL
 
         public override void RoundStartEffect(int stacks)
         {
-            var buffStacks = Math.Max(3, (int)Math.Ceiling(stacks / 2f));
-            owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Quickness, buffStacks);
+            var buffStacks = Math.Min(3, stacks);
             var allies = BattleObjectManager.instance.GetAliveList(owner.faction);
-            allies.Remove(owner);
             var allyToBuff = RandomUtil.SelectOne(allies);
             allyToBuff.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Quickness, buffStacks);
         }
@@ -379,7 +377,8 @@ namespace SeraphDLL
                 if (bondsBuff?.stack > DesiredStacks)
                 {
                     Debug.Log("Targeting enemies with bond card");
-                    return base.ChangeAttackTarget(card, idx);
+                    var unbrokenEnemies = BattleObjectManager.instance.GetAliveList(owner.faction == Faction.Player ? Faction.Enemy : Faction.Player).Where(x => !x.breakDetail.IsBreakLifeZero());
+                    return unbrokenEnemies.Any() ? RandomUtil.SelectOne(unbrokenEnemies.ToArray()) : base.ChangeAttackTarget(card, idx);
                 }
                 //TODO: prioritize allies with less stacks
                 var allies = BattleObjectManager.instance.GetAliveList(owner.faction);
@@ -428,7 +427,7 @@ namespace SeraphDLL
     {
         public override void OnRoundStart()
         {
-            if (owner.emotionDetail.EmotionLevel >= 3)
+            if (owner.emotionDetail.EmotionLevel >= 2)
             {
                 owner.cardSlotDetail.RecoverPlayPoint(2);
                 owner.allyCardDetail.DrawCards(1);
@@ -494,7 +493,7 @@ namespace SeraphDLL
             var potentialTargets = BattleObjectManager.instance.GetAliveList(owner.faction == Faction.Player ? Faction.Enemy : Faction.Player)
                 .OrderBy(x => UnityEngine.Random.value)
                 .OrderBy(x => x.bufListDetail.GetActivatedBuf(KeywordBuf.Decay)?.stack);
-            var targetsWithEntropy = potentialTargets.Where(x => x.bufListDetail.GetActivatedBufList().Any(y => y is BattleUnitBuf_unstable_entropy buff && buff?.stack > 1));
+            var targetsWithEntropy = potentialTargets.Where(x => x.bufListDetail.GetActivatedBufList().Any(y => y is BattleUnitBuf_seraph_unstable_entropy buff && buff?.stack > 1));
             if (card.GetID() == new LorId(ModData.WorkshopId, 14))
             {
                 var targetWithoutEntropy = potentialTargets.Except(targetsWithEntropy).FirstOrDefault();

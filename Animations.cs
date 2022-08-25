@@ -46,27 +46,36 @@ namespace SeraphDLL
 		{
 			return _movable;
 		}
-		private static bool _movable = true;
-		private static bool _firstAttack = true;
-		private static ActionDetail previousAction;
-		private readonly ActionDetail[] _possibleActions = new ActionDetail[] { ActionDetail.Slash, ActionDetail.Penetrate, ActionDetail.Hit, ActionDetail.Move };
+		private bool _movable = true;
+		private int _count = 0;
+		private ActionDetail previousAction;
+		private static readonly (ActionDetail, string)[] _possibleActions = new[] { 
+			(ActionDetail.Slash, "WarpCrew_J"), 
+			(ActionDetail.Penetrate, "WarpCrew_Z"), 
+			(ActionDetail.Hit, "WarpCrew_H"),
+			(ActionDetail.Move, "WarpCrew_J") };
+		private const int totalCount = 3;
 
 		public override List<RencounterManager.MovingAction> GetMovingAction(ref RencounterManager.ActionAfterBehaviour self, ref RencounterManager.ActionAfterBehaviour opponent)
 		{
 			var moveActions = new List<RencounterManager.MovingAction>();
 			if (self.result == Result.Win && self.data.actionType == ActionType.Atk && !opponent.behaviourResultData.IsFarAtk())
 			{
-				var finalAttack = self.behaviourResultData.resultDiceValue == self.behaviourResultData.resultDiceMin;
-                var movingAction = new RencounterManager.MovingAction(NextAction(), _firstAttack ? CharMoveState.MoveOpponent : CharMoveState.Stop, 0f, false, 0.2f);
+				var finalAttack = _count == totalCount;
+				_count++;
+				(ActionDetail nextAction, string nextEffectRes) = NextAction();
+				var movingAction = new RencounterManager.MovingAction(nextAction, _count == 0 ? CharMoveState.MoveOpponent : CharMoveState.Stop, 0f, false, 0.2f);
 				movingAction.SetEffectTiming(EffectTiming.PRE, EffectTiming.NONE, EffectTiming.NONE);
+				movingAction.customEffectRes = nextEffectRes;
 				moveActions.Add(movingAction);
-				var movingAction2 = new RencounterManager.MovingAction(NextAction(), CharMoveState.Stop, 3f, false, finalAttack ? 1f : 0.2f);
+				(var nextAction2, var nextEffectRes2) = NextAction();
+				var movingAction2 = new RencounterManager.MovingAction(nextAction2, CharMoveState.Stop, 3f, false, finalAttack ? 1f : 0.2f);
 				movingAction2.SetEffectTiming(EffectTiming.PRE, EffectTiming.PRE, EffectTiming.PRE);
+				movingAction2.customEffectRes = nextEffectRes2;
 				moveActions.Add(movingAction2);
 				opponent.infoList.Add(new RencounterManager.MovingAction(ActionDetail.Damaged, CharMoveState.Stop, 0f, false, 0.2f));
 				opponent.infoList.Add(new RencounterManager.MovingAction(ActionDetail.Damaged, finalAttack ? CharMoveState.Knockback : CharMoveState.Stop, 3f, false, finalAttack ? 1f : 0.2f));
 				_movable = finalAttack;
-				_firstAttack = false;
 			}
 			else
 			{
@@ -76,10 +85,10 @@ namespace SeraphDLL
 			return moveActions;
 		}
 
-		private ActionDetail NextAction()
+		private (ActionDetail, string) NextAction()
         {
-			var nextAction = RandomUtil.SelectOne(_possibleActions.Where(x => x != previousAction).ToArray());
-			previousAction = nextAction;
+			var nextAction = RandomUtil.SelectOne(_possibleActions.Where(x => x.Item1 != previousAction).ToArray());
+			previousAction = nextAction.Item1;
 			return nextAction;
         }
 	}

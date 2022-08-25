@@ -19,8 +19,8 @@ namespace SeraphDLL
 		{
 			MethodInfo methodSetStoryLine = typeof(UIStoryProgressPanel).GetMethod("SetStoryLine", AccessTools.all);
 			harmony.Patch(methodSetStoryLine, postfix: new HarmonyMethod(SymbolExtensions.GetMethodInfo(() => UIStoryProgressPanel_SetStoryLine_Postfix(null))));
-            MethodInfo methodSetStoryIconDictionary = typeof(UISpriteDataManager).GetMethod("SetStoryIconDictionary", AccessTools.all);
-            harmony.Patch(methodSetStoryIconDictionary, postfix: new HarmonyMethod(SymbolExtensions.GetMethodInfo(() => UISpriteDataManager_SetStoryIconDictionary_Postfix(null))));
+            //MethodInfo methodSetStoryIconDictionary = typeof(UISpriteDataManager).GetMethod("SetStoryIconDictionary", AccessTools.all);
+            //harmony.Patch(methodSetStoryIconDictionary, postfix: new HarmonyMethod(SymbolExtensions.GetMethodInfo(() => UISpriteDataManager_SetStoryIconDictionary_Postfix(null))));
         }
 
         private static void UIStoryProgressPanel_SetStoryLine_Postfix(UIStoryProgressPanel __instance)
@@ -55,14 +55,7 @@ namespace SeraphDLL
             var offset = new Vector3(-400f, 0f);
             var previousStoryIconSlot = ((List<UIStoryProgressIconSlot>)typeof(UIStoryProgressPanel).GetField("iconList", AccessTools.all).GetValue(__instance)).Find(x => x.currentStory == previousStory);
 
-            var data = Singleton<StageClassInfoList>.Instance.GetData(new LorId(ModData.WorkshopId, 1));
-            //Get rid of the workshop id automatically added to the book LorIds, we want to use a vanilla book here
-            var needsBooksCopy = data.invitationInfo.needsBooks.ToArray();
-            data.invitationInfo.needsBooks.Clear();
-            data.invitationInfo.needsBooks.AddRange(needsBooksCopy.Select(x => new LorId(x.id)));
-
             var newIconSlot = Object.Instantiate(previousStoryIconSlot, previousStoryIconSlot.transform.parent);
-            //newIconSlot.currentStory = UIStoryLine.Rats;
             newIconSlot.Initialized(__instance);
             newIconSlot.transform.localPosition += offset;
 
@@ -74,24 +67,27 @@ namespace SeraphDLL
             newConnectLine.transform.localRotation = new Quaternion(90f, 0f, 0f, 0f);
             connectLineListField.SetValue(newIconSlot, new List<GameObject> { newConnectLine });
 
+            var data = Singleton<StageClassInfoList>.Instance.GetData(new LorId(ModData.WorkshopId, 1));
             _storySlots[new List<StageClassInfo>() { data }] = newIconSlot;
         }
 
-        private static void UISpriteDataManager_SetStoryIconDictionary_Postfix(UISpriteDataManager __instance)
-        {
-            var storyIconDic = (Dictionary<string, IconSet>)typeof(UISpriteDataManager).GetField("StoryIconDic", AccessTools.all).GetValue(__instance);
-            if (!storyIconDic.ContainsKey(ModData.WorkshopId))
-            {
-                var iconSet = new IconSet
-                {
-                    type = ModData.WorkshopId,
-                    icon = ModData.Sprites["Sprites_StoryIcon"],
-                    color = storyIconDic.Values.First().color,
-                    iconGlow = ModData.Sprites["Sprites_StoryIconGlow"],
-                    colorGlow = storyIconDic.Values.First().colorGlow
-                };
-                storyIconDic.Add(iconSet.type, iconSet);
-            }
-        }
+
+        //Made obsolete by LocalizationManager
+        //private static void UISpriteDataManager_SetStoryIconDictionary_Postfix(UISpriteDataManager __instance)
+        //{
+        //    var storyIconDic = (Dictionary<string, IconSet>)typeof(UISpriteDataManager).GetField("StoryIconDic", AccessTools.all).GetValue(__instance);
+        //    if (!storyIconDic.ContainsKey(ModData.WorkshopId))
+        //    {
+        //        var iconSet = new IconSet
+        //        {
+        //            type = ModData.WorkshopId,
+        //            icon = ModData.Sprites["Sprites_StoryIcon"],
+        //            color = storyIconDic.Values.First().color,
+        //            iconGlow = ModData.Sprites["Sprites_StoryIconGlow"],
+        //            colorGlow = storyIconDic.Values.First().colorGlow
+        //        };
+        //        storyIconDic.Add(iconSet.type, iconSet);
+        //    }
+        //}
     }
 }

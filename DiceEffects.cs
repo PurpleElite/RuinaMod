@@ -4,35 +4,28 @@ using UnityEngine;
 
 namespace SeraphDLL
 {
-    public class DiceCardAbility_seraph_multi : DiceCardAbilityBase
-    {
-        public static string Desc = "This die is rolled up to 4 times at the cost of one light per extra roll.";
-
-        private int rerollCount = 0;
-        public override void AfterAction()
-        {
-            if (rerollCount < 3 && owner.cardSlotDetail.PlayPoint > 0)
-            {
-                Debug.Log("Light count: " + owner.cardSlotDetail.PlayPoint);
-                owner.cardSlotDetail.LosePlayPoint(1);
-                ActivateBonusAttackDice();
-                rerollCount++;
-            }
-        }
-    }
-
     public class DiceCardAbility_seraph_execute : DiceCardAbilityBase
     {
-        public static string Desc = "[On Hit] If target is Staggered deal 60 damage";
+        public static string Desc = "[On Hit] If target is Staggered deal 30 damage";
+        private bool _execute = false;
+        private string _actionScript;
+
+        public override void BeforeGiveDamage(BattleUnitModel target)
+        {
+            if (target != null && (target.IsBreakLifeZero() || target.breakDetail.breakGauge == 0))
+            {
+                _execute = true;
+                //behavior.behaviourInCard.ActionScript = behavior.behaviourInCard.ActionScript ?? _actionScript;
+            }
+        }
 
         public override void OnSucceedAttack()
         {
             var target = card.target;
-            Debug.Log("execute OnSuceedAttack target " + target.view.name);
-            if (target != null && (target.IsBreakLifeZero() || target.breakDetail.breakGauge == 0))
+            if (_execute)
             {
-                Debug.Log("Target break life is zero");
-                target.TakeDamage(60, DamageType.Card_Ability, owner);
+                _execute = false;
+                target.TakeDamage(30, DamageType.Card_Ability, owner);
                 BattleCardTotalResult battleCardResultLog = owner.battleCardResultLog;
                 if (battleCardResultLog == null)
                 {
@@ -40,6 +33,11 @@ namespace SeraphDLL
                 }
                 battleCardResultLog.SetPrintDamagedEffectEvent(new BattleCardBehaviourResult.BehaviourEvent(EarthQuake));
             }
+            //else
+            //{
+            //    _actionScript = behavior.behaviourInCard.ActionScript ?? _actionScript;
+            //    behavior.behaviourInCard.ActionScript = null;
+            //}
             base.OnSucceedAttack();
         }
 
@@ -68,22 +66,23 @@ namespace SeraphDLL
 
         public override string[] Keywords
         {
-            get { return new string[] { "UnstableEntropy" }; }
+            get { return new string[] { "SeraphRunaways_UnstableEntropy" }; }
         }
+
         public override void OnSucceedAttack(BattleUnitModel target)
         {
             Debug.Log("entropy OnSucceedAttack()");
             var buffDetail = target.bufListDetail;
-            var buff = (BattleUnitBuf_unstable_entropy)buffDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_unstable_entropy);
+            var buff = (BattleUnitBuf_seraph_unstable_entropy)buffDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_seraph_unstable_entropy);
             if (buff != null)
             {
-                Debug.Log("entropy setting stack to " + BattleUnitBuf_unstable_entropy.Duration + 1);
-                buff.stack = BattleUnitBuf_unstable_entropy.Duration + 1;
+                Debug.Log("entropy setting stack to " + BattleUnitBuf_seraph_unstable_entropy.Duration + 1);
+                buff.stack = BattleUnitBuf_seraph_unstable_entropy.Duration + 1;
             }
             else
             {
                 Debug.Log("entropy AddReadyBuf");
-                target.bufListDetail.AddReadyBuf(new BattleUnitBuf_unstable_entropy());
+                target.bufListDetail.AddReadyBuf(new BattleUnitBuf_seraph_unstable_entropy());
             }
         } 
     }
@@ -116,28 +115,28 @@ namespace SeraphDLL
 
         public override void OnSucceedAttack(BattleUnitModel target)
         {
-            owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Decay, 1, owner);
-            if (owner.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay erosionOwner)
+            if (behavior.DiceVanillaValue == behavior.GetDiceMax())
             {
-                erosionOwner.ChangeToYanDecay();
-            }
-            if (target != null)
-            {
-                target.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Decay, 1, owner);
-                if (target.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay erosionTarget)
+                owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Decay, 1, owner);
+                if (owner.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay erosionOwner)
                 {
-                    erosionTarget.ChangeToYanDecay();
+                    erosionOwner.ChangeToYanDecay();
+                }
+                if (target != null)
+                {
+                    target.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Decay, 1, owner);
+                    if (target.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay erosionTarget)
+                    {
+                        erosionTarget.ChangeToYanDecay();
+                    }
                 }
             }
             if (count >= 3)
             {
                 return;
             }
-            if (behavior.DiceVanillaValue == behavior.GetDiceMax())
-            {
-                ActivateBonusAttackDice();
-                count++;
-            }
+            ActivateBonusAttackDice();
+            count++;
         }
     }
 
