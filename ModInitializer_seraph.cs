@@ -1,11 +1,8 @@
-﻿using LOR_XML;
-using StoryScene;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Xml.Serialization;
 using UnityEngine;
 
 namespace SeraphDLL
@@ -28,10 +25,12 @@ namespace SeraphDLL
             GetSprites(new DirectoryInfo((ModData.ModPath?.ToString()) + Sep + "Resource"));
             //AddEffectText();
             InitStageClassInfo();
+            AddAppearanceProjections();
             PatchRoadmap.Patch();
             PatchBookThumbnail.Patch();
             PatchPages.Patch();
             PatchStorySprites.Patch();
+            //PatchAppearanceProjection.Patch();
         }
 
         private static void GetSprites(DirectoryInfo parentDir)
@@ -70,30 +69,53 @@ namespace SeraphDLL
             }
         }
 
-        private static void AddEffectText()
-        {
-            Dictionary<string, BattleEffectText> dictionary =
-                typeof(BattleEffectTextsXmlList).GetField("_dictionary", BindingFlags.NonPublic | BindingFlags.Instance)
-                .GetValue(Singleton<BattleEffectTextsXmlList>.Instance) as Dictionary<string, BattleEffectText>;
-            FileInfo[] files = new DirectoryInfo((ModData.ModPath?.ToString()) + Sep + "Data" + Sep + "Localize" + Sep + ModData.Language + Sep + "EffectTexts").GetFiles();
-            for (int i = 0; i < files.Length; i++)
-            {
-                using (StringReader stringReader = new StringReader(File.ReadAllText(files[i].FullName)))
-                {
-                    BattleEffectTextRoot battleEffectTextRoot = (BattleEffectTextRoot)new XmlSerializer(typeof(BattleEffectTextRoot)).Deserialize(stringReader);
-                    for (int j = 0; j < battleEffectTextRoot.effectTextList.Count; j++)
-                    {
-                        BattleEffectText battleEffectText = battleEffectTextRoot.effectTextList[j];
-                        dictionary.Add(battleEffectText.ID, battleEffectText);
-                    }
-                }
-            }
-        }
+        //private static void AddEffectText()
+        //{
+        //    Dictionary<string, BattleEffectText> dictionary =
+        //        typeof(BattleEffectTextsXmlList).GetField("_dictionary", BindingFlags.NonPublic | BindingFlags.Instance)
+        //        .GetValue(Singleton<BattleEffectTextsXmlList>.Instance) as Dictionary<string, BattleEffectText>;
+        //    FileInfo[] files = new DirectoryInfo((ModData.ModPath?.ToString()) + Sep + "Data" + Sep + "Localize" + Sep + ModData.Language + Sep + "EffectTexts").GetFiles();
+        //    for (int i = 0; i < files.Length; i++)
+        //    {
+        //        using (StringReader stringReader = new StringReader(File.ReadAllText(files[i].FullName)))
+        //        {
+        //            BattleEffectTextRoot battleEffectTextRoot = (BattleEffectTextRoot)new XmlSerializer(typeof(BattleEffectTextRoot)).Deserialize(stringReader);
+        //            for (int j = 0; j < battleEffectTextRoot.effectTextList.Count; j++)
+        //            {
+        //                BattleEffectText battleEffectText = battleEffectTextRoot.effectTextList[j];
+        //                dictionary.Add(battleEffectText.ID, battleEffectText);
+        //            }
+        //        }
+        //    }
+        //}
 
         private static void InitStageClassInfo()
         {
             var data = Singleton<StageClassInfoList>.Instance.GetData(new LorId(ModData.WorkshopId, 1));
             Singleton<StageClassInfoList>.Instance.recipeCondList.Add(data);
+        }
+
+        private static void AddAppearanceProjections()
+        {
+
+            var skinDataField = typeof(CustomizingResourceLoader).GetField("_skinData", BindingFlags.NonPublic | BindingFlags.Instance);
+            var _skinData = (Dictionary<string, Workshop.WorkshopSkinData>)skinDataField.GetValue(Singleton<CustomizingResourceLoader>.Instance);
+            foreach (var charName in new[]{ "Johanna", "Linus", "Sheire"})
+            {
+                var appearanceInfo = Workshop.WorkshopAppearanceItemLoader.LoadCustomAppearance(ModData.ModPath.FullName + Sep + "Resource" + Sep + "CharacterSkin" + Sep + $"{charName}KeyPage");
+                appearanceInfo.uniqueId = appearanceInfo.uniqueId ?? charName;
+                if (!_skinData.ContainsKey(appearanceInfo.uniqueId))
+                {
+                    var workshopSkinData = new Workshop.WorkshopSkinData
+                    { 
+                        dic = appearanceInfo.clothCustomInfo,
+                        dataName = appearanceInfo.bookName,
+                        contentFolderIdx = appearanceInfo.uniqueId,
+                        id = _skinData.Count + 1,
+                    };
+                    _skinData.Add(appearanceInfo.uniqueId, workshopSkinData);
+                }
+            }
         }
     }
 }
