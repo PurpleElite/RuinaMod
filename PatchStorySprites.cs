@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
+using UnityEngine.UI;
+using WorkParser;
 
 namespace SeraphDLL
 {
@@ -17,6 +19,8 @@ namespace SeraphDLL
             GetCharacterFaces();
             MethodInfo methodLoadCharacterPrefab = typeof(StoryManager).GetMethod("LoadCharacterPrefab", AccessTools.all);
             harmony.Patch(methodLoadCharacterPrefab, postfix: new HarmonyMethod(typeof(PatchStorySprites).GetMethod("StoryManager_LoadCharacterPrefab_Postfix", AccessTools.all)));
+            MethodInfo methodUpdateList = typeof(DialogLogManager).GetMethod("UpdateList", AccessTools.all);
+            harmony.Patch(methodUpdateList, postfix: new HarmonyMethod(SymbolExtensions.GetMethodInfo(() => DialogLogManager_UpdateList_Postfix(null))));
         }
 
         private static void GetCharacterFaces()
@@ -62,11 +66,31 @@ namespace SeraphDLL
                             newRenderer.transform.localPosition = new Vector3(-0.51f, 6.2f);
                             break;
                         case "Sheire":
-                            newRenderer.transform.localPosition = new Vector3(-0.11f, 6f);
+                            newRenderer.transform.localPosition = new Vector3(-.11f, 5.99f);
                             break;
                     }
                     
                     faceRenderList.Add(newRenderer);
+                }
+            }
+        }
+
+        private static void DialogLogManager_UpdateList_Postfix(DialogLogManager __instance)
+        {
+            if (StorySerializer.isMod)
+            {
+                var slotList = (List<CharacterDialogLog>)typeof(DialogLogManager).GetField("slotList", AccessTools.all).GetValue(__instance);
+                var fieldPortraitImage = typeof(CharacterDialogLog).GetField("PortraitImage", AccessTools.all);
+                var fieldDialog = typeof(CharacterDialogLog).GetField("dialog", AccessTools.all);
+                foreach (var slot in slotList)
+                {
+                    var dialog = (Dialog)fieldDialog.GetValue(slot);
+                    if (dialog != null && ModData.Sprites.TryGetValue("StoryStanding_CharacterPortraits_" + dialog.Teller, out var portrait))
+                    {
+                        var portraitImage = (Image)fieldPortraitImage.GetValue(slot);
+                        portraitImage.enabled = true;
+                        portraitImage.sprite = portrait;
+                    }
                 }
             }
         }

@@ -163,7 +163,7 @@ namespace SeraphDLL
         public override int GetPriorityAdder(BattleDiceCardModel card, int speed)
         {
             //If there are staggered targets and the card has execute effect, prioritize using it
-            if (card.GetBehaviourList().Any(x => x.Script == "execute") || card.GetID() == new LorId(ModData.WorkshopId, 8))
+            if (card.GetBehaviourList().Any(x => x.Script == "execute") || card.GetID() == new LorId(ModData.WorkshopId, 8) || card.GetID() == new LorId(ModData.WorkshopId, 38))
             {
                 if (GetStaggeredTargets().Count() > 0)
                 {
@@ -180,7 +180,7 @@ namespace SeraphDLL
         public override BattleUnitModel ChangeAttackTarget(BattleDiceCardModel card, int idx)
         {
             //If card has execute effect, prioritize staggered targets
-            if (card.GetBehaviourList().Any(x => x.Script == "execute") || card.GetID() == new LorId(ModData.WorkshopId, 8))
+            if (card.GetBehaviourList().Any(x => x.Script == "execute") || card.GetID() == new LorId(ModData.WorkshopId, 8) || card.GetID() == new LorId(ModData.WorkshopId, 38))
             {
                 return GetStaggeredTargets().LastOrDefault();
             }
@@ -280,7 +280,7 @@ namespace SeraphDLL
 
         public override int GetPriorityAdder(BattleDiceCardModel card, int speed)
         {
-            if (card.GetID() == new LorId(ModData.WorkshopId, _cardId))
+            if (card.GetID() == new LorId(ModData.WorkshopId, _cardId) || card.GetID() == new LorId(ModData.WorkshopId, _cardId + 30))
             {
                 var allies = BattleObjectManager.instance.GetFriendlyAllList(owner.faction);
                 if (allies.Any(x => x.IsKnockout()))
@@ -371,7 +371,7 @@ namespace SeraphDLL
 
         public override BattleUnitModel ChangeAttackTarget(BattleDiceCardModel card, int idx)
         {
-            if (card.GetID() == new LorId(ModData.WorkshopId, CardId))
+            if (card.GetID() == new LorId(ModData.WorkshopId, CardId) || card.GetID() == new LorId(ModData.WorkshopId, CardId + 30))
             {
                 var bondsBuff = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_seraph_bonds);
                 if (bondsBuff?.stack > DesiredStacks)
@@ -390,7 +390,7 @@ namespace SeraphDLL
 
         public override int GetPriorityAdder(BattleDiceCardModel card, int speed)
         {
-            if (card.GetID() == new LorId(ModData.WorkshopId, CardId))
+            if (card.GetID() == new LorId(ModData.WorkshopId, CardId) || card.GetID() == new LorId(ModData.WorkshopId, CardId + 30))
             {
                 var allies = BattleObjectManager.instance.GetAliveList();
                 var bondsBuff = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_seraph_bonds);
@@ -484,7 +484,7 @@ namespace SeraphDLL
 
         public override double ChangeDamage(BattleUnitModel attacker, double dmg)
         {
-            return dmg - 2;
+            return dmg - 4;
         }
 
         //Linus prioritizes targets based on which ones have unstable entropy, followed by which one has the most erosion 
@@ -494,7 +494,7 @@ namespace SeraphDLL
                 .OrderBy(x => UnityEngine.Random.value)
                 .OrderBy(x => x.bufListDetail.GetActivatedBuf(KeywordBuf.Decay)?.stack);
             var targetsWithEntropy = potentialTargets.Where(x => x.bufListDetail.GetActivatedBufList().Any(y => y is BattleUnitBuf_seraph_unstable_entropy buff && buff?.stack > 1));
-            if (card.GetID() == new LorId(ModData.WorkshopId, 14))
+            if (card.GetID() == new LorId(ModData.WorkshopId, 14) || card.GetID() == new LorId(ModData.WorkshopId, 34))
             {
                 var targetWithoutEntropy = potentialTargets.Except(targetsWithEntropy).FirstOrDefault();
                 if (targetWithoutEntropy != null)

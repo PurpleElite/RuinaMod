@@ -343,6 +343,18 @@ namespace SeraphDLL
         }
     }
 
+    public class DiceCardSelfAbility_seraph_staggerProtection1start : DiceCardSelfAbilityBase
+    {
+        public static string Desc = "[Combat Start] Gain 1 Stagger Protection";
+
+        public override string[] Keywords => new string[] { "bstart_Keyword", "BreakProtection_Keyword" };
+
+        public override void OnStartBattle()
+        {
+            owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.BreakProtection, 1, owner);
+        }
+    }
+
     public class DiceCardSelfAbility_seraph_staggerProtection3start : DiceCardSelfAbilityBase
     {
         public static string Desc = "[Combat Start] Gain 3 Stagger Protection";
@@ -369,11 +381,11 @@ namespace SeraphDLL
 
     public class DiceCardSelfAbility_seraph_borrowed_time_light : DiceCardSelfAbilityBase
     {
-        public static string Desc = "[On Use] Lose 2 Light next Scene";
+        public static string Desc = "[On Use] Lose 3 Light next Scene";
 
         public override void OnUseCard()
         {
-            owner.cardSlotDetail.LoseWhenStartRound(2);
+            owner.cardSlotDetail.LoseWhenStartRound(3);
         }
     }
 
