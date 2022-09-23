@@ -360,7 +360,7 @@ namespace SeraphDLL
 
         public override void OnWaveStart()
         {
-            owner.bufListDetail.AddBuf(new BattleUnitBuf_seraph_bonds());
+            //owner.bufListDetail.AddBuf(new BattleUnitBuf_seraph_bonds());
             owner.allyCardDetail.AddNewCard(new LorId(ModData.WorkshopId, CardId));
             var allies = BattleObjectManager.instance.GetAliveList(owner.faction);
             foreach (var ally in allies)
@@ -456,7 +456,7 @@ namespace SeraphDLL
     {
         public override void OnRoundStart()
         {
-            var stacks = Owner.bufListDetail.GetKewordBufStack(KeywordBuf.Decay);
+            var stacks = Math.Min(Owner.bufListDetail.GetKewordBufStack(KeywordBuf.Decay), 3);
             Owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Strength, stacks);
         }
 
@@ -475,16 +475,21 @@ namespace SeraphDLL
                     return;
                 }
                 target.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Decay, 1, owner);
-                if (target.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay decay)
+                if (target.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay decayTarget)
                 {
-                    decay.ChangeToYanDecay();
+                    decayTarget.ChangeToYanDecay();
+                }
+                owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Decay, 1, owner);
+                if (owner.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay decayOwner)
+                {
+                    decayOwner.ChangeToYanDecay();
                 }
             }
         }
 
         public override double ChangeDamage(BattleUnitModel attacker, double dmg)
         {
-            return dmg - 4;
+            return dmg * .1;
         }
 
         //Linus prioritizes targets based on which ones have unstable entropy, followed by which one has the most erosion 

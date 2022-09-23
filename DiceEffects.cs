@@ -71,18 +71,21 @@ namespace SeraphDLL
 
         public override void OnSucceedAttack(BattleUnitModel target)
         {
-            Debug.Log("entropy OnSucceedAttack()");
             var buffDetail = target.bufListDetail;
             var buff = (BattleUnitBuf_seraph_unstable_entropy)buffDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_seraph_unstable_entropy);
+            
             if (buff != null)
             {
-                Debug.Log("entropy setting stack to " + BattleUnitBuf_seraph_unstable_entropy.Duration + 1);
                 buff.stack = BattleUnitBuf_seraph_unstable_entropy.Duration + 1;
             }
             else
             {
-                Debug.Log("entropy AddReadyBuf");
-                target.bufListDetail.AddReadyBuf(new BattleUnitBuf_seraph_unstable_entropy());
+                buff = (BattleUnitBuf_seraph_unstable_entropy)buffDetail.GetReadyBufList().Find(x => x is BattleUnitBuf_seraph_unstable_entropy);
+                if (buff == null)
+                {
+                    target.bufListDetail.AddReadyBuf(new BattleUnitBuf_seraph_unstable_entropy());
+
+                }
             }
         } 
     }

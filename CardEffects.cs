@@ -42,7 +42,7 @@ namespace SeraphDLL
 
     public class DiceCardSelfAbility_seraph_together_to_the_end : DiceCardSelfAbilityBase
     {
-        public static string Desc = "[On Combat Start] Spend 1 stack of The Bonds that Bind Us and inflict 2 Feeble and Disarm on self. Reduce max Stagger Resist by 20% (Up to 40%) [End of Scene] Revive all Incapacitated allies at half health and max stagger resist.";
+        public static string Desc = "[On Combat Start] Spend 1 stack of The Bonds that Bind Us and inflict 3 Feeble and Disarm on self. Reduce max Stagger Resist by 20% (Up to 40%) [End of Scene] Revive all Incapacitated allies at half health and max stagger resist.";
         public override string[] Keywords => new string[] { "Weak_Keyword", "Disarm_Keyword" };
 
         const int maxStaggerReductionPercent = 20;
@@ -62,8 +62,8 @@ namespace SeraphDLL
             {
                 owner.bufListDetail.AddBuf(new BattleUnitBuf_seraph_revive_all_round_end());
                 bondsBuff.stack--;
-                owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Weak, 2);
-                owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Disarm, 2);
+                owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Weak, 3);
+                owner.bufListDetail.AddKeywordBufThisRoundByCard(KeywordBuf.Disarm, 3);
 
                 BattleUnitBuf activatedBuf = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_seraph_reduce_max_bp);
                 if (activatedBuf != null)
@@ -247,7 +247,7 @@ namespace SeraphDLL
 
     public class DiceCardSelfAbility_seraph_bonds_restore : DiceCardSelfAbility_seraph_bonds_base
     {
-        public static new string Desc = DiceCardSelfAbility_seraph_bonds_base.Desc + " If target is an enemy, spend 1 stack of Bonds to make all damage dealt by friendly combat pages this scene restore user's hp.";
+        public static new string Desc = DiceCardSelfAbility_seraph_bonds_base.Desc + " If target is an enemy, spend 1 stack of Bonds to make all friendly clash wins this round generate one extra emotion coin and restore 5 HP and Stagger Resist";
 
         protected override void TargetEnemy(BattleUnitBuf bondsBuff)
         {
@@ -272,10 +272,11 @@ namespace SeraphDLL
 
         public class BattleUnitBuf_seraph_bonds_restore_buff : BattleUnitBuf
         {
-            public override void OnSuccessAttack(BattleDiceBehavior behavior)
+            public override void OnWinParrying(BattleDiceBehavior behavior)
             {
-                _owner.RecoverHP(behavior.DiceResultDamage);
-                base.OnSuccessAttack(behavior);
+                _owner.RecoverHP(5);
+                _owner.breakDetail.RecoverBreak(5);
+                _owner.emotionDetail.CreateEmotionCoin(EmotionCoinType.Positive);
             }
 
             public override void OnRoundEnd()
@@ -288,13 +289,11 @@ namespace SeraphDLL
 
     public class DiceCardSelfAbility_seraph_fastforward : DiceCardSelfAbilityBase
     {
-        public static string Desc = "[On Use] Grant three random allies 1 Haste next Scene and draw 1 page.";
+        public static string Desc = "[On Use] Grant three random allies 1 Haste next Scene.";
         public override string[] Keywords => new string[] { "Quickness_Keyword" };
 
         public override void OnUseCard()
         {
-            Debug.Log("fastforward OnUseCard()");
-            owner.allyCardDetail.DrawCards(1);
             var team = BattleObjectManager.instance.GetAliveList(owner.faction);
             for (int i = 0; i < 3 && team.Count > 0; i++)
             {
@@ -565,15 +564,18 @@ namespace SeraphDLL
                 var selectedDieIndex = BattleManagerUI.Instance.selectedAllyDice?.OrderOfDice;
                 if (selectedDieIndex == AggroSource.targetSlotOrder)
                 {
-                    var enemies = BattleObjectManager.instance.GetAliveList((card.owner.faction == Faction.Enemy) ? Faction.Player : Faction.Enemy);
-                    foreach (var enemy in enemies)
+                    if (card.owner.faction == Faction.Player)
                     {
-                        for (int i = 0; i < enemy.cardSlotDetail.cardAry.Count(); i++)
+                        foreach (var enemy in BattleObjectManager.instance.GetAliveList(Faction.Enemy))
                         {
-                            if (enemy.cardSlotDetail.cardAry[i] != AggroSource)
-                                enemy.view.speedDiceSetterUI.GetSpeedDiceByIndex(i).BlockDice(true, true);
+                            for (int i = 0; i < enemy.cardSlotDetail.cardAry.Count(); i++)
+                            {
+                                if (enemy.cardSlotDetail.cardAry[i] != AggroSource)
+                                    enemy.view.speedDiceSetterUI.GetSpeedDiceByIndex(i).BlockDice(true, true);
+                            }
                         }
                     }
+                    
                 }
                 //Hijack here to change target of card after it's been set to its final value
                 if (_cardToRetarget == card)
