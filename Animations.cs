@@ -176,7 +176,7 @@ namespace SeraphDLL
 								attacker.view.WorldPosition = targetInfo.unitModel.view.WorldPosition;
 								//Alternate slashing motion
 								_motionCount = (_motionCount + 1) % 2;
-								attacker.view.charAppearance.ChangeMotion((_motionCount == 0) ? ActionDetail.Slash : ActionDetail.S2);
+								attacker.view.charAppearance.ChangeMotion((_motionCount == 0) ? ActionDetail.Hit : ActionDetail.Penetrate);
 								//Alternate which side of the target the attacker ends up on
 								_sign = ((_sign == 1) ? -1 : 1);
 								Vector3 positionOffset = new Vector3(SingletonBehavior<HexagonalMapManager>.Instance.tileSize * 4f * _self.view.transform.localScale.x / 1.5f, 0f, 0f) * _sign;
@@ -184,7 +184,7 @@ namespace SeraphDLL
 								_dstPosAtkOneTarget = targetInfo.unitModel.view.WorldPosition - positionOffset;
 								attacker.view.WorldPosition = _srcPosAtkOneTarget;
 								attacker.UpdateDirection(targetInfo.unitModel.view.WorldPosition);
-								string resource = "WarpCrew_J";//(_motionCount == 0) ? "FX_Mon_Argalia_Slash_Up" : "FX_Mon_Argalia_Slash_Down_Small";
+								string resource = (_motionCount == 0) ? "WarpCrew_H" : "WarpCrew_Z";
 								DiceAttackEffect diceAttackEffect = SingletonBehavior<DiceEffectManager>.Instance.CreateBehaviourEffect(resource, 1f, attacker.view, targetInfo.unitModel.view, 1f);
 								if (diceAttackEffect != null)
 								{

@@ -180,9 +180,26 @@ namespace SeraphDLL
         public override BattleUnitModel ChangeAttackTarget(BattleDiceCardModel card, int idx)
         {
             //If card has execute effect, prioritize staggered targets
-            if (card.GetBehaviourList().Any(x => x.Script == "execute") || card.GetID() == new LorId(ModData.WorkshopId, 8) || card.GetID() == new LorId(ModData.WorkshopId, 38))
+            if (card.GetBehaviourList().Any(x => x.Script == "seraph_execute") || card.GetID() == new LorId(ModData.WorkshopId, 8) || card.GetID() == new LorId(ModData.WorkshopId, 38))
             {
                 return GetStaggeredTargets().LastOrDefault();
+            }
+            //If using P!C!T! target the most dangerous targets that Linus isn't already focusing
+            else if (card.GetID() == new LorId(ModData.WorkshopId, 3) || card.GetID() == new LorId(ModData.WorkshopId, 33))
+            {
+                var targets = BattleObjectManager.instance.GetAliveList(owner.faction == Faction.Player ? Faction.Enemy : Faction.Player);
+                var noBreak = targets.Where(x => !x.IsBreakLifeZero());
+                if (noBreak.Any())
+                {
+                    targets = noBreak.ToList();
+                }
+                var noEntropy = targets.Where(x => !x.bufListDetail.GetActivatedBufList().Any(y => y is BattleUnitBuf_seraph_unstable_entropy));
+                if (noEntropy.Any())
+                {
+                    targets = noEntropy.ToList();
+                }
+                targets = targets.OrderBy(x => x.PlayPoint).ToList();
+                return targets.FirstOrDefault();
             }
             return base.ChangeAttackTarget(card, idx);
         }
@@ -454,42 +471,27 @@ namespace SeraphDLL
 
     public class PassiveAbility_seraph_the_nymane_key : PassiveAbilityBase
     {
-        public override void OnRoundStart()
-        {
-            var stacks = Math.Min(Owner.bufListDetail.GetKewordBufStack(KeywordBuf.Decay), 3);
-            Owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Strength, stacks);
-        }
-
         public override void OnSucceedAttack(BattleDiceBehavior behavior)
         {
-            if (RandomUtil.valueForProb < 0.5f)
+            BattleUnitModel target = behavior.card.target;
+            if (target != null && target.bufListDetail.GetActivatedBufList().Any(x => x is BattleUnitBuf_seraph_unstable_entropy entropy) && RandomUtil.valueForProb <= 0.5f)
             {
                 BattleCardTotalResult battleCardResultLog = owner.battleCardResultLog;
                 if (battleCardResultLog != null)
                 {
                     battleCardResultLog.SetPassiveAbility(this);
                 }
-                BattleUnitModel target = behavior.card.target;
-                if (target == null)
-                {
-                    return;
-                }
                 target.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Decay, 1, owner);
                 if (target.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay decayTarget)
                 {
                     decayTarget.ChangeToYanDecay();
-                }
-                owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Decay, 1, owner);
-                if (owner.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay decayOwner)
-                {
-                    decayOwner.ChangeToYanDecay();
                 }
             }
         }
 
         public override double ChangeDamage(BattleUnitModel attacker, double dmg)
         {
-            return dmg * .1;
+            return dmg * .5;
         }
 
         //Linus prioritizes targets based on which ones have unstable entropy, followed by which one has the most erosion 
@@ -508,6 +510,37 @@ namespace SeraphDLL
                 }
             }
             return targetsWithEntropy.FirstOrDefault() ?? potentialTargets.First() ?? base.ChangeAttackTarget(card, idx);
+        }
+    }
+
+    public class PassiveAbility_seraph_paradox_nymane_key : PassiveAbilityBase
+    {
+        public override void OnSucceedAttack(BattleDiceBehavior behavior)
+        {
+            BattleUnitModel target = behavior.card.target;
+            if (target != null && target.bufListDetail.GetActivatedBufList().Any(x => x is BattleUnitBuf_seraph_unstable_entropy entropy) && RandomUtil.valueForProb <= 0.25f)
+            {
+                BattleCardTotalResult battleCardResultLog = owner.battleCardResultLog;
+                if (battleCardResultLog != null)
+                {
+                    battleCardResultLog.SetPassiveAbility(this);
+                }
+                target.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Decay, 1, owner);
+                if (target.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay decayTarget)
+                {
+                    decayTarget.ChangeToYanDecay();
+                }
+                owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Decay, 1, owner);
+                if (owner.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay decayOwner)
+                {
+                    decayOwner.ChangeToYanDecay();
+                }
+            }
+        }
+
+        public override double ChangeDamage(BattleUnitModel attacker, double dmg)
+        {
+            return dmg * .5;
         }
     }
 
