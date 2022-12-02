@@ -1,9 +1,12 @@
-﻿using System;
+﻿using NAudio.Wave;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace SeraphDLL
 {
@@ -13,6 +16,7 @@ namespace SeraphDLL
         internal static string Language = "en";
         internal static DirectoryInfo ModPath { get; set; }
         static public Dictionary<string, Sprite> Sprites { get; } = new Dictionary<string, Sprite>();
+        static public Dictionary<string, AudioClip> Sounds { get; } = new Dictionary<string, AudioClip>();
     }
 
     public class ModInitializer_seraph : ModInitializer
@@ -22,29 +26,32 @@ namespace SeraphDLL
         {
             var assemblyPath = new DirectoryInfo(Path.GetDirectoryName(Uri.UnescapeDataString(new UriBuilder(Assembly.GetExecutingAssembly().CodeBase).Path)));
             ModData.ModPath = assemblyPath.Parent;
-            GetSprites(new DirectoryInfo((ModData.ModPath?.ToString()) + Sep + "Resource"));
-            //AddEffectText();
+            GetResources(new DirectoryInfo((ModData.ModPath?.ToString()) + Sep + "Resource"));
             InitStageClassInfo();
             AddAppearanceProjections();
             PatchRoadmap.Patch();
             PatchBookThumbnail.Patch();
             PatchPages.Patch();
             PatchStorySprites.Patch();
-            //PatchAppearanceProjection.Patch();
+            PatchVoiceLines.Patch();
         }
 
-        private static void GetSprites(DirectoryInfo parentDir)
+        private static void GetResources(DirectoryInfo parentDir)
         {
             if (parentDir.GetDirectories().Length != 0)
             {
                 DirectoryInfo[] childDirs = parentDir.GetDirectories();
                 for (int i = 0; i < childDirs.Length; i++)
                 {
-                    GetSprites(childDirs[i]);
+                    GetResources(childDirs[i]);
                 }
             }
+
+            var audioDownloads = new Queue<(DownloadHandlerAudioClip Download, string Name)>();
+
             foreach (FileInfo fileInfo in parentDir.GetFiles())
             {
+                //Sprites
                 if (fileInfo.Extension == ".png")
                 {
                     Texture2D texture2D = new Texture2D(2, 2);
@@ -52,7 +59,39 @@ namespace SeraphDLL
                     Sprite value = Sprite.Create(texture2D, new Rect(0f, 0f, texture2D.width, texture2D.height), new Vector2(0f, 0f));
                     value.texture.wrapMode = TextureWrapMode.Clamp;
                     ModData.Sprites[GetImageName(fileInfo)] = value;
+                    break;
                 }
+
+                //Sounds
+                AudioType audioType = AudioType.OGGVORBIS;
+                if (fileInfo.Extension == ".wav")
+                {
+                    audioType = AudioType.WAV;
+                }
+                if (File.Exists(fileInfo.FullName))
+                {
+                    var webRequest = UnityWebRequestMultimedia.GetAudioClip("file://" + fileInfo.FullName, audioType);
+                    webRequest.SendWebRequest();
+                    if (webRequest.isNetworkError)
+                    {
+                        Debug.Log(webRequest.error);
+                    }
+                    else
+                    {
+                        audioDownloads.Enqueue((webRequest.downloadHandler as DownloadHandlerAudioClip, fileInfo.Name));
+                    }
+                }
+            }
+
+            foreach ((var download, var name) in audioDownloads)
+            {
+                while (!download.isDone)
+                {
+                    Thread.Sleep(1);
+                }
+                AudioClip audioClip = download.audioClip;
+                audioClip.name = name;
+                ModData.Sounds[name] = audioClip;
             }
 
             string GetImageName(FileInfo fileInfo)

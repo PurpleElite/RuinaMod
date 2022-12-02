@@ -8,7 +8,6 @@ namespace SeraphDLL
     {
         public static string Desc = "[On Hit] If target is Staggered deal 30 damage";
         private bool _execute = false;
-        private string _actionScript;
 
         public override void BeforeGiveDamage(BattleUnitModel target)
         {
