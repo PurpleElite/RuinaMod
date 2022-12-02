@@ -1,8 +1,4 @@
-﻿using System;
-using System.Reflection;
-using UnityEngine;
-
-namespace SeraphDLL
+﻿namespace SeraphDLL
 {
     public class BattleUnitBuf_seraph_bonds : BattleUnitBuf
     {
@@ -23,13 +19,6 @@ namespace SeraphDLL
             }
         }
 
-        public override void Init(BattleUnitModel owner)
-        {
-            base.Init(owner);
-            //typeof(BattleUnitBuf).GetField("_bufIcon", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(this, ModData.Sprites["BufIcons_" + buffName]);
-            //typeof(BattleUnitBuf).GetField("_iconInit", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(this, true);
-        }
-
         public override void OnRoundEnd()
         {
             if (stack <= 0)
@@ -47,9 +36,8 @@ namespace SeraphDLL
     public class BattleUnitBuf_seraph_unstable_entropy : BattleUnitBuf
     {
         private const string buffName = "SeraphRunaways_UnstableEntropy";
-        //private const int overflowValue = 3;
 
-        public static int Duration = 3;
+        public static int Duration = 2;
         public override BufPositiveType positiveType => BufPositiveType.Negative;
 
         protected override string keywordId
@@ -70,21 +58,6 @@ namespace SeraphDLL
         {
             var erosionStacks = _owner.bufListDetail.GetKewordBufStack(KeywordBuf.Decay);
             _owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Quickness, erosionStacks);
-            //var overflow = Math.Max(erosionStacks - overflowValue, 0);
-            //if (overflow > 0)
-            //{
-            //    Debug.Log("Unstable Entropy triggered");
-            //    var allies = BattleObjectManager.instance.GetAliveList(_owner.faction);
-            //    allies.Remove(_owner);
-            //    foreach (var ally in allies)
-            //    {
-            //        ally.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Decay, overflow);
-            //        if (ally.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay decay)
-            //        {
-            //            decay.ChangeToYanDecay();
-            //        }
-            //    }
-            //}
             base.OnRoundStart();
         }
 

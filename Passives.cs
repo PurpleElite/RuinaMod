@@ -56,7 +56,7 @@ namespace SeraphDLL
             {
                 attacker.OnKill(owner);
                 _die = true;
-                Debug.Log("about to die, adding 10 strength and endurance");
+                //Debug.Log("about to die, adding 10 strength and endurance");
                 owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Strength, 10, owner);
                 owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Endurance, 10, owner);
             }
@@ -336,17 +336,17 @@ namespace SeraphDLL
         public override void RoundStartEffect(int stacks)
         {
             var allies = BattleObjectManager.instance.GetAliveList(owner.faction).ToList();
-            var restoreAmount = Math.Min(stacks * 3, 9);
+            var restoreAmount = Math.Min(stacks * 4, 9);
             for (int i = 0; i < 2; i++)
             {
                 if (allies.Count() > 0)
                 {
                     var allyToHeal = RandomUtil.SelectOne(allies);
                     allyToHeal.RecoverHP(restoreAmount);
-                    if (!allyToHeal.IsBreakLifeZero() && allyToHeal.breakDetail.breakGauge > 0)
-                    {
-                        allyToHeal.breakDetail.RecoverBreak(restoreAmount);
-                    }
+                    //if (!allyToHeal.IsBreakLifeZero() && allyToHeal.breakDetail.breakGauge > 0)
+                    //{
+                    //    allyToHeal.breakDetail.RecoverBreak(restoreAmount);
+                    //}
                     allies.Remove(allyToHeal);
                 }
             }
@@ -393,11 +393,10 @@ namespace SeraphDLL
                 var bondsBuff = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_seraph_bonds);
                 if (bondsBuff?.stack > DesiredStacks)
                 {
-                    Debug.Log("Targeting enemies with bond card");
+                    //Debug.Log("Targeting enemies with bond card");
                     var unbrokenEnemies = BattleObjectManager.instance.GetAliveList(owner.faction == Faction.Player ? Faction.Enemy : Faction.Player).Where(x => !x.breakDetail.IsBreakLifeZero());
                     return unbrokenEnemies.Any() ? RandomUtil.SelectOne(unbrokenEnemies.ToArray()) : base.ChangeAttackTarget(card, idx);
                 }
-                //TODO: prioritize allies with less stacks
                 var allies = BattleObjectManager.instance.GetAliveList(owner.faction);
                 allies.Remove(owner);
                 return allies.Any() ? RandomUtil.SelectOne(allies) : base.ChangeAttackTarget(card, idx);
@@ -425,7 +424,7 @@ namespace SeraphDLL
 
         public override void OnRoundStart()
         {
-            if (owner.emotionDetail.EmotionLevel == 3 && !SecondCardAdded)
+            if (owner.emotionDetail.EmotionLevel >= 3 && !SecondCardAdded)
             {
                 owner.allyCardDetail.AddNewCard(new LorId(ModData.WorkshopId, CardId));
                 SecondCardAdded = true;
@@ -604,7 +603,7 @@ namespace SeraphDLL
             {
                 if (behavior.Type == BehaviourType.Def && behavior.Detail == BehaviourDetail.Evasion && behavior?.DiceVanillaValue == behavior.GetDiceMax())
                 {
-                    Debug.Log("Sting like a bee triggered");
+                    //Debug.Log("Sting like a bee triggered");
                     var diceBehavior = new BattleDiceBehavior
                     {
                         behaviourInCard = new DiceBehaviour

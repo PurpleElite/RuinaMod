@@ -153,7 +153,7 @@ namespace SeraphDLL
 
     public class DiceCardAbility_seraph_erosion_kickback1 : DiceCardAbilityBase
     {
-        public static string Desc = "[On Hit] Inflict target with 1 Erosion if they have Unstable Entropy";
+        public static string Desc = "[On Hit] Inflict target and self with 1 Erosion";
 
         protected const int Amount = 1;
 
