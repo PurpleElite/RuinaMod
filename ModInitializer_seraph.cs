@@ -59,26 +59,27 @@ namespace SeraphDLL
                     Sprite value = Sprite.Create(texture2D, new Rect(0f, 0f, texture2D.width, texture2D.height), new Vector2(0f, 0f));
                     value.texture.wrapMode = TextureWrapMode.Clamp;
                     ModData.Sprites[GetImageName(fileInfo)] = value;
-                    break;
                 }
-
-                //Sounds
-                AudioType audioType = AudioType.OGGVORBIS;
-                if (fileInfo.Extension == ".wav")
+                else
                 {
-                    audioType = AudioType.WAV;
-                }
-                if (File.Exists(fileInfo.FullName))
-                {
-                    var webRequest = UnityWebRequestMultimedia.GetAudioClip("file://" + fileInfo.FullName, audioType);
-                    webRequest.SendWebRequest();
-                    if (webRequest.isNetworkError)
+                    //Sounds
+                    AudioType audioType = AudioType.OGGVORBIS;
+                    if (fileInfo.Extension == ".wav")
                     {
-                        Debug.Log(webRequest.error);
+                        audioType = AudioType.WAV;
                     }
-                    else
+                    if (File.Exists(fileInfo.FullName))
                     {
-                        audioDownloads.Enqueue((webRequest.downloadHandler as DownloadHandlerAudioClip, fileInfo.Name));
+                        var webRequest = UnityWebRequestMultimedia.GetAudioClip("file://" + fileInfo.FullName, audioType);
+                        webRequest.SendWebRequest();
+                        if (webRequest.isNetworkError)
+                        {
+                            Debug.Log(webRequest.error);
+                        }
+                        else
+                        {
+                            audioDownloads.Enqueue((webRequest.downloadHandler as DownloadHandlerAudioClip, fileInfo.Name));
+                        }
                     }
                 }
             }

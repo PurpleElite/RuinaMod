@@ -260,13 +260,6 @@ namespace SeraphDLL
             foreach (var ally in allies)
             {
                 ally.bufListDetail.AddBuf(new BattleUnitBuf_seraph_bonds_restore_buff());
-                //ally.cardSlotDetail.RecoverPlayPoint(1);
-                //ally.emotionDetail.CreateEmotionCoin(EmotionCoinType.Positive, 2);
-                //var debuffs = ally.bufListDetail.GetActivatedBufList().Where(x => x.positiveType == BufPositiveType.Negative);
-                //foreach (var debuff in debuffs)
-                //{
-                //    debuff.Destroy();
-                //}
             }
         }
 
@@ -438,7 +431,7 @@ namespace SeraphDLL
                 //Debug.Log($"PCT targeting {card.target.UnitData.unitData.name}, slot {card.targetSlotOrder}");
                 var targetCardsDetail = card.target.cardSlotDetail;
                 var targetCard = targetCardsDetail.cardAry[card.targetSlotOrder];
-                if (targetCard != null)
+                if (targetCard != null && (targetCard.card.CreateDiceCardSelfAbilityScript()?.IsTargetChangable(unit) ?? true))
                 {
                     targetCard.target = unit;
                     targetCard.targetSlotOrder = card.slotOrder;
