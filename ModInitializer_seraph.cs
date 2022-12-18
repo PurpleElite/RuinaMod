@@ -63,12 +63,15 @@ namespace SeraphDLL
                 else
                 {
                     //Sounds
-                    AudioType audioType = AudioType.OGGVORBIS;
-                    if (fileInfo.Extension == ".wav")
+                    var audioType = AudioType.UNKNOWN;
+                    switch (fileInfo.Extension)
                     {
-                        audioType = AudioType.WAV;
+                        case ".wav":
+                            audioType = AudioType.WAV; break;
+                        case ".ogg":
+                            audioType = AudioType.OGGVORBIS; break;
                     }
-                    if (File.Exists(fileInfo.FullName))
+                    if (audioType != AudioType.UNKNOWN && File.Exists(fileInfo.FullName))
                     {
                         var webRequest = UnityWebRequestMultimedia.GetAudioClip("file://" + fileInfo.FullName, audioType);
                         webRequest.SendWebRequest();
@@ -78,7 +81,7 @@ namespace SeraphDLL
                         }
                         else
                         {
-                            audioDownloads.Enqueue((webRequest.downloadHandler as DownloadHandlerAudioClip, fileInfo.Name));
+                            audioDownloads.Enqueue((webRequest.downloadHandler as DownloadHandlerAudioClip, Path.GetFileNameWithoutExtension(fileInfo.Name)));
                         }
                     }
                 }
