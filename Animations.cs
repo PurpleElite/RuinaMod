@@ -152,11 +152,7 @@ namespace SeraphDLL
 				if (_elapsedAtkOneTarget < Mathf.Epsilon)
 				{
 					CardRange ranged = attacker.currentDiceAction.card.GetSpec().Ranged;
-					if (ranged == CardRange.FarArea)
-					{
-						Util.DebugEditorLog("?");
-					}
-					else if (ranged == CardRange.FarAreaEach)
+					if (ranged == CardRange.FarAreaEach)
 					{
 						List<BattleFarAreaPlayManager.VictimInfo> victimList = _victimList;
 						if (victimList != null && victimList.Count > 0)

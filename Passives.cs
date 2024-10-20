@@ -29,11 +29,6 @@ namespace SeraphDLL
 
         public override void OnWaveStart()
         {
-            //TODO: Remove this before publishing
-            foreach (var unit in BattleObjectManager.instance.GetAliveList())
-            {
-                unit.passiveDetail.AddPassive(new PassiveAbility_seraph_analytics_data());
-            }
             _breakState = BreakState.noBreak;
             _die = false;
             _hpBeforeDamage = owner.MaxHp;
@@ -685,45 +680,5 @@ namespace SeraphDLL
         }
 
         public override bool isHide => true;
-    }
-
-    public class PassiveAbility_seraph_analytics_data : PassiveAbilityBase
-    {
-        public int DamageTaken = 0;
-        public int DamageTakenFromAtacks = 0;
-        public int DamageDealtWithAttacks = 0;
-        public int DamageTakenFromErode = 0;
-
-        public override void AfterTakeDamage(BattleUnitModel attacker, int dmg)
-        {
-            DamageTaken += dmg;
-        }
-        public override void OnTakeDamageByAttack(BattleDiceBehavior atkDice, int dmg)
-        {
-            DamageTakenFromAtacks += dmg;
-            if (owner.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay buf)
-            {
-                DamageTakenFromErode += buf.stack;
-            }
-        }
-        public override void AfterGiveDamage(int damage)
-        {
-            DamageDealtWithAttacks += damage;
-        }
-        public override void OnRoundEnd()
-        {
-            if (owner.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay buf)
-            {
-                DamageTakenFromErode += buf.stack;
-            }
-        }
-        public override void OnBattleEnd()
-        {
-            Debug.Log($"{owner.UnitData.unitData.name} stats:\n" +
-                $"Damage Taken: {DamageTaken}\n" +
-                $"Damage Taken From Attacks: {DamageTakenFromAtacks}\n" +
-                $"Damage Taken From Erode: {DamageTakenFromErode}\n" +
-                $"Damage Dealt With Attacks: {DamageDealtWithAttacks}");
-        }
     }
 }
