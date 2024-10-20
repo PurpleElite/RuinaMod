@@ -94,7 +94,7 @@ namespace SeraphDLL
             public override void OnRoundEnd()
             {
                 var targets = BattleObjectManager.instance.GetList(_owner.faction).Where(x => x.IsKnockout());
-                Debug.Log("[SERAPH] revive targets count: " + targets?.Count());
+                //Debug.Log("[SERAPH] revive targets count: " + targets?.Count());
                 var knockoutField = typeof(BattleUnitBaseModel).GetField("_isKnockout", BindingFlags.NonPublic | BindingFlags.Instance);
                 foreach (var target in targets ?? Array.Empty<BattleUnitModel>())
                 {
@@ -122,7 +122,7 @@ namespace SeraphDLL
             var bondsBuff = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_seraph_bonds);
             if (card.target.faction == owner.faction)
             {
-                Debug.Log("bondsBuff targeting ally");
+                //Debug.Log("bondsBuff targeting ally");
                 if (bondsBuff == null)
                 {
                     owner.bufListDetail.AddBuf(new BattleUnitBuf_seraph_bonds());
@@ -229,7 +229,7 @@ namespace SeraphDLL
                             targetSlotOrder = UnityEngine.Random.Range(0, battleUnitModel.speedDiceResult.Count)
                         };
                         card.subTargets.Add(subTarget);
-                        Debug.Log("Added subTarget: " + subTarget.target?.view.name);
+                        //Debug.Log("Added subTarget: " + subTarget.target?.view.name);
                     }
                 }
             }
@@ -260,13 +260,6 @@ namespace SeraphDLL
             foreach (var ally in allies)
             {
                 ally.bufListDetail.AddBuf(new BattleUnitBuf_seraph_bonds_restore_buff());
-                //ally.cardSlotDetail.RecoverPlayPoint(1);
-                //ally.emotionDetail.CreateEmotionCoin(EmotionCoinType.Positive, 2);
-                //var debuffs = ally.bufListDetail.GetActivatedBufList().Where(x => x.positiveType == BufPositiveType.Negative);
-                //foreach (var debuff in debuffs)
-                //{
-                //    debuff.Destroy();
-                //}
             }
         }
 
@@ -398,8 +391,7 @@ namespace SeraphDLL
 
         public static void RedirectToNewTarget(Faction userFaction, BattlePlayingCardDataInUnitModel cardToRedirect)
         {
-            //This isn't working right
-            Debug.Log("otherCard is targeting the same dice as PCT");
+            //Debug.Log("otherCard is targeting the same dice as PCT");
             var targetsOfThisScript = BattleObjectManager.instance.GetAliveList(userFaction)
                 .SelectMany(x => x.cardSlotDetail.cardAry)
                 .Where(x => x?.card.XmlData.Script == "seraph_force_clash")
@@ -417,9 +409,9 @@ namespace SeraphDLL
                 var newTarget = RandomUtil.SelectOne(potentialNewTargets.ToArray());
                 cardToRedirect.target = newTarget.Item1;
                 cardToRedirect.targetSlotOrder = newTarget.Item2;
-                Debug.Log("otherCard target changed to: " + cardToRedirect.target.UnitData.unitData.name);
+                //Debug.Log("otherCard target changed to: " + cardToRedirect.target.UnitData.unitData.name);
             }
-            Debug.Log("otherCard targetSlotOrder changed to: " + cardToRedirect.targetSlotOrder);
+            //Debug.Log("otherCard targetSlotOrder changed to: " + cardToRedirect.targetSlotOrder);
         }
 
         public override void OnApplyCard()
@@ -436,14 +428,10 @@ namespace SeraphDLL
                 onApplyCardCalledFlag.Destroy();
                 unit.bufListDetail.RemoveBuf(onApplyCardCalledFlag);
                 var card = unit.cardSlotDetail.cardAry.FirstOrDefault(x => x?.card == self);
-                if (card == null)
-                {
-                    Debug.Log("Something has gone wrong!");
-                }
-                Debug.Log($"PCT targeting {card.target.UnitData.unitData.name}, slot {card.targetSlotOrder}");
+                //Debug.Log($"PCT targeting {card.target.UnitData.unitData.name}, slot {card.targetSlotOrder}");
                 var targetCardsDetail = card.target.cardSlotDetail;
                 var targetCard = targetCardsDetail.cardAry[card.targetSlotOrder];
-                if (targetCard != null)
+                if (targetCard != null && (targetCard.card.CreateDiceCardSelfAbilityScript()?.IsTargetChangable(unit) ?? true))
                 {
                     targetCard.target = unit;
                     targetCard.targetSlotOrder = card.slotOrder;

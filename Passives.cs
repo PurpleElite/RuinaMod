@@ -29,11 +29,6 @@ namespace SeraphDLL
 
         public override void OnWaveStart()
         {
-            //TODO: Remove this before publishing
-            foreach (var unit in BattleObjectManager.instance.GetAliveList())
-            {
-                unit.passiveDetail.AddPassive(new PassiveAbility_seraph_analytics_data());
-            }
             _breakState = BreakState.noBreak;
             _die = false;
             _hpBeforeDamage = owner.MaxHp;
@@ -56,7 +51,7 @@ namespace SeraphDLL
             {
                 attacker.OnKill(owner);
                 _die = true;
-                Debug.Log("about to die, adding 10 strength and endurance");
+                //Debug.Log("about to die, adding 10 strength and endurance");
                 owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Strength, 10, owner);
                 owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Endurance, 10, owner);
             }
@@ -180,9 +175,26 @@ namespace SeraphDLL
         public override BattleUnitModel ChangeAttackTarget(BattleDiceCardModel card, int idx)
         {
             //If card has execute effect, prioritize staggered targets
-            if (card.GetBehaviourList().Any(x => x.Script == "execute") || card.GetID() == new LorId(ModData.WorkshopId, 8) || card.GetID() == new LorId(ModData.WorkshopId, 38))
+            if (card.GetBehaviourList().Any(x => x.Script == "seraph_execute") || card.GetID() == new LorId(ModData.WorkshopId, 8) || card.GetID() == new LorId(ModData.WorkshopId, 38))
             {
                 return GetStaggeredTargets().LastOrDefault();
+            }
+            //If using P!C!T! target the most dangerous targets that Linus isn't already focusing
+            else if (card.GetID() == new LorId(ModData.WorkshopId, 3) || card.GetID() == new LorId(ModData.WorkshopId, 33))
+            {
+                var targets = BattleObjectManager.instance.GetAliveList(owner.faction == Faction.Player ? Faction.Enemy : Faction.Player);
+                var noBreak = targets.Where(x => !x.IsBreakLifeZero());
+                if (noBreak.Any())
+                {
+                    targets = noBreak.ToList();
+                }
+                var noEntropy = targets.Where(x => !x.bufListDetail.GetActivatedBufList().Any(y => y is BattleUnitBuf_seraph_unstable_entropy));
+                if (noEntropy.Any())
+                {
+                    targets = noEntropy.ToList();
+                }
+                targets = targets.OrderBy(x => x.PlayPoint).ToList();
+                return targets.FirstOrDefault();
             }
             return base.ChangeAttackTarget(card, idx);
         }
@@ -319,17 +331,17 @@ namespace SeraphDLL
         public override void RoundStartEffect(int stacks)
         {
             var allies = BattleObjectManager.instance.GetAliveList(owner.faction).ToList();
-            var restoreAmount = Math.Min(stacks * 3, 9);
+            var restoreAmount = Math.Min(stacks * 4, 9);
             for (int i = 0; i < 2; i++)
             {
                 if (allies.Count() > 0)
                 {
                     var allyToHeal = RandomUtil.SelectOne(allies);
                     allyToHeal.RecoverHP(restoreAmount);
-                    if (!allyToHeal.IsBreakLifeZero() && allyToHeal.breakDetail.breakGauge > 0)
-                    {
-                        allyToHeal.breakDetail.RecoverBreak(restoreAmount);
-                    }
+                    //if (!allyToHeal.IsBreakLifeZero() && allyToHeal.breakDetail.breakGauge > 0)
+                    //{
+                    //    allyToHeal.breakDetail.RecoverBreak(restoreAmount);
+                    //}
                     allies.Remove(allyToHeal);
                 }
             }
@@ -376,11 +388,10 @@ namespace SeraphDLL
                 var bondsBuff = owner.bufListDetail.GetActivatedBufList().Find(x => x is BattleUnitBuf_seraph_bonds);
                 if (bondsBuff?.stack > DesiredStacks)
                 {
-                    Debug.Log("Targeting enemies with bond card");
+                    //Debug.Log("Targeting enemies with bond card");
                     var unbrokenEnemies = BattleObjectManager.instance.GetAliveList(owner.faction == Faction.Player ? Faction.Enemy : Faction.Player).Where(x => !x.breakDetail.IsBreakLifeZero());
                     return unbrokenEnemies.Any() ? RandomUtil.SelectOne(unbrokenEnemies.ToArray()) : base.ChangeAttackTarget(card, idx);
                 }
-                //TODO: prioritize allies with less stacks
                 var allies = BattleObjectManager.instance.GetAliveList(owner.faction);
                 allies.Remove(owner);
                 return allies.Any() ? RandomUtil.SelectOne(allies) : base.ChangeAttackTarget(card, idx);
@@ -408,7 +419,7 @@ namespace SeraphDLL
 
         public override void OnRoundStart()
         {
-            if (owner.emotionDetail.EmotionLevel == 3 && !SecondCardAdded)
+            if (owner.emotionDetail.EmotionLevel >= 3 && !SecondCardAdded)
             {
                 owner.allyCardDetail.AddNewCard(new LorId(ModData.WorkshopId, CardId));
                 SecondCardAdded = true;
@@ -454,42 +465,27 @@ namespace SeraphDLL
 
     public class PassiveAbility_seraph_the_nymane_key : PassiveAbilityBase
     {
-        public override void OnRoundStart()
-        {
-            var stacks = Math.Min(Owner.bufListDetail.GetKewordBufStack(KeywordBuf.Decay), 3);
-            Owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Strength, stacks);
-        }
-
         public override void OnSucceedAttack(BattleDiceBehavior behavior)
         {
-            if (RandomUtil.valueForProb < 0.5f)
+            BattleUnitModel target = behavior.card.target;
+            if (target != null && target.bufListDetail.GetActivatedBufList().Any(x => x is BattleUnitBuf_seraph_unstable_entropy entropy) && RandomUtil.valueForProb <= 0.5f)
             {
                 BattleCardTotalResult battleCardResultLog = owner.battleCardResultLog;
                 if (battleCardResultLog != null)
                 {
                     battleCardResultLog.SetPassiveAbility(this);
                 }
-                BattleUnitModel target = behavior.card.target;
-                if (target == null)
-                {
-                    return;
-                }
                 target.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Decay, 1, owner);
                 if (target.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay decayTarget)
                 {
                     decayTarget.ChangeToYanDecay();
-                }
-                owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Decay, 1, owner);
-                if (owner.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay decayOwner)
-                {
-                    decayOwner.ChangeToYanDecay();
                 }
             }
         }
 
         public override double ChangeDamage(BattleUnitModel attacker, double dmg)
         {
-            return dmg * .1;
+            return dmg * .5;
         }
 
         //Linus prioritizes targets based on which ones have unstable entropy, followed by which one has the most erosion 
@@ -508,6 +504,37 @@ namespace SeraphDLL
                 }
             }
             return targetsWithEntropy.FirstOrDefault() ?? potentialTargets.First() ?? base.ChangeAttackTarget(card, idx);
+        }
+    }
+
+    public class PassiveAbility_seraph_paradox_nymane_key : PassiveAbilityBase
+    {
+        public override void OnSucceedAttack(BattleDiceBehavior behavior)
+        {
+            BattleUnitModel target = behavior.card.target;
+            if (target != null && target.bufListDetail.GetActivatedBufList().Any(x => x is BattleUnitBuf_seraph_unstable_entropy entropy) && RandomUtil.valueForProb <= 0.25f)
+            {
+                BattleCardTotalResult battleCardResultLog = owner.battleCardResultLog;
+                if (battleCardResultLog != null)
+                {
+                    battleCardResultLog.SetPassiveAbility(this);
+                }
+                target.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Decay, 1, owner);
+                if (target.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay decayTarget)
+                {
+                    decayTarget.ChangeToYanDecay();
+                }
+                owner.bufListDetail.AddKeywordBufThisRoundByEtc(KeywordBuf.Decay, 1, owner);
+                if (owner.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay decayOwner)
+                {
+                    decayOwner.ChangeToYanDecay();
+                }
+            }
+        }
+
+        public override double ChangeDamage(BattleUnitModel attacker, double dmg)
+        {
+            return dmg * .5;
         }
     }
 
@@ -571,7 +598,7 @@ namespace SeraphDLL
             {
                 if (behavior.Type == BehaviourType.Def && behavior.Detail == BehaviourDetail.Evasion && behavior?.DiceVanillaValue == behavior.GetDiceMax())
                 {
-                    Debug.Log("Sting like a bee triggered");
+                    //Debug.Log("Sting like a bee triggered");
                     var diceBehavior = new BattleDiceBehavior
                     {
                         behaviourInCard = new DiceBehaviour
@@ -653,45 +680,5 @@ namespace SeraphDLL
         }
 
         public override bool isHide => true;
-    }
-
-    public class PassiveAbility_seraph_analytics_data : PassiveAbilityBase
-    {
-        public int DamageTaken = 0;
-        public int DamageTakenFromAtacks = 0;
-        public int DamageDealtWithAttacks = 0;
-        public int DamageTakenFromErode = 0;
-
-        public override void AfterTakeDamage(BattleUnitModel attacker, int dmg)
-        {
-            DamageTaken += dmg;
-        }
-        public override void OnTakeDamageByAttack(BattleDiceBehavior atkDice, int dmg)
-        {
-            DamageTakenFromAtacks += dmg;
-            if (owner.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay buf)
-            {
-                DamageTakenFromErode += buf.stack;
-            }
-        }
-        public override void AfterGiveDamage(int damage)
-        {
-            DamageDealtWithAttacks += damage;
-        }
-        public override void OnRoundEnd()
-        {
-            if (owner.bufListDetail.GetActivatedBuf(KeywordBuf.Decay) is BattleUnitBuf_Decay buf)
-            {
-                DamageTakenFromErode += buf.stack;
-            }
-        }
-        public override void OnBattleEnd()
-        {
-            Debug.Log($"{owner.UnitData.unitData.name} stats:\n" +
-                $"Damage Taken: {DamageTaken}\n" +
-                $"Damage Taken From Attacks: {DamageTakenFromAtacks}\n" +
-                $"Damage Taken From Erode: {DamageTakenFromErode}\n" +
-                $"Damage Dealt With Attacks: {DamageDealtWithAttacks}");
-        }
     }
 }
